@@ -215,16 +215,8 @@ export default function App() {
   );
 
   const PlayersSection = () => {
-const [draft, setDraft] = useState<Omit<Player, "id">>({
-  nom: "",
-  prenom: "",
-  licence: "",
-  sexe: "Homme",
-  pos1: "-",
-  pos2: "-",
-  pos3: "-",
-  note: ""
-});    const canAdd = draft.name.trim().length > 1;
+    const [draft, setDraft] = useState<Omit<Player, "id">>({ name: "", pos1: "-", pos2: "-", pos3: "-", note: "" });
+    const canAdd = draft.name.trim().length > 1;
 
     return (
       <Section title="Base Joueurs" subtitle="Nom + 3 positions possibles (ordre de préférence)">
