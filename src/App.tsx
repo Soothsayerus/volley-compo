@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-// --- Types ---
+/* ================================
+   Types & constantes
+==================================*/
 type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu" | "-";
 
 type Player = {
@@ -34,10 +36,8 @@ type Lineup = {
   slots: { zone: 1|2|3|4|5|6; playerId?: string; plannedPos?: Position }[];
 };
 
-// --- Constantes ---
 const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu", "-"];
 
-// --- Helpers LocalStorage ---
 const LS_KEYS = {
   players: "volley.players.v1",
   matches: "volley.matches.v1",
@@ -45,6 +45,9 @@ const LS_KEYS = {
   lineups:  "volley.lineups.v1",
 };
 
+/* ================================
+   Helpers stockage local
+==================================*/
 function loadLS<T>(key: string, fallback: T): T {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
 }
@@ -52,8 +55,10 @@ function saveLS<T>(key: string, data: T) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 }
 
-// --- UI Components ---
-const Section: React.FC<{title: string; subtitle?: string; right?: React.ReactNode;}> = ({ title, subtitle, right, children }) => (
+/* ================================
+   UI components minimalistes
+==================================*/
+const Section: React.FC<{title:string; subtitle?:string; right?:React.ReactNode;}> = ({title, subtitle, right, children}) => (
   <div className="bg-white rounded-2xl shadow p-5 mb-6">
     <div className="flex items-start justify-between gap-4 mb-3">
       <div>
@@ -66,7 +71,7 @@ const Section: React.FC<{title: string; subtitle?: string; right?: React.ReactNo
   </div>
 );
 
-const Field: React.FC<{label: string; className?: string;}> = ({ label, className, children }) => (
+const Field: React.FC<{label:string; className?:string;}> = ({label, className, children}) => (
   <label className={`flex flex-col gap-1 ${className ?? ""}`}>
     <span className="text-sm text-gray-600">{label}</span>
     {children}
@@ -81,34 +86,36 @@ const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) 
   <select {...props} className={`border rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-indigo-500 ${props.className ?? ""}`} />
 );
 
-const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className, children, ...props }) => (
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({className, children, ...props}) => (
   <button {...props} className={`rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700 disabled:opacity-50 ${className ?? ""}`}>{children}</button>
 );
 
-const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className, children, ...props }) => (
+const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({className, children, ...props}) => (
   <button {...props} className={`inline-flex items-center justify-center rounded-lg border px-3 py-1.5 hover:bg-gray-50 ${className ?? ""}`}>{children}</button>
 );
 
-const Tag: React.FC<{text: string;}> = ({ text }) => (
+const Tag: React.FC<{text:string;}> = ({text}) => (
   <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-700">{text}</span>
 );
 
-// --- Main App ---
+/* ================================
+   App
+==================================*/
 export default function App() {
   const [players, setPlayers]     = useState<Player[]>(() => loadLS(LS_KEYS.players, []));
   const [matches, setMatches]     = useState<Match[]>(() => loadLS(LS_KEYS.matches, []));
   const [presences, setPresences] = useState<Presence[]>(() => loadLS(LS_KEYS.presences, []));
   const [lineups, setLineups]     = useState<Lineup[]>(() => loadLS(LS_KEYS.lineups, []));
 
-  const [activeTab, setActiveTab]         = useState<"players"|"matches"|"presences"|"lineup">("players");
+  const [activeTab, setActiveTab] = useState<"players"|"matches"|"presences"|"lineup">("players");
   const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(() => matches[0]?.id);
 
-  useEffect(() => saveLS(LS_KEYS.players, players),   [players]);
-  useEffect(() => saveLS(LS_KEYS.matches, matches),   [matches]);
+  useEffect(() => saveLS(LS_KEYS.players, players), [players]);
+  useEffect(() => saveLS(LS_KEYS.matches, matches), [matches]);
   useEffect(() => saveLS(LS_KEYS.presences, presences), [presences]);
-  useEffect(() => saveLS(LS_KEYS.lineups, lineups),   [lineups]);
+  useEffect(() => saveLS(LS_KEYS.lineups, lineups), [lineups]);
 
-  // Seed minimal si vide
+  // Données exemples minimales
   useEffect(() => {
     if (players.length === 0) {
       setPlayers([
@@ -125,7 +132,7 @@ export default function App() {
     }
   }, []);
 
-  // Présents / Lineup dérivés
+  // Dérivés présences & lineup
   const presentPlayerIds = useMemo(() => {
     if (!selectedMatchId) return new Set<string>();
     return new Set(presences.filter(p => p.matchId === selectedMatchId && p.present).map(p => p.playerId));
@@ -140,12 +147,12 @@ export default function App() {
     return l;
   }, [lineups, selectedMatchId]);
 
-  const updateLineup = (updater: (l: Lineup) => Lineup) => {
+  const updateLineup = (updater:(l:Lineup)=>Lineup) => {
     if (!currentLineup) return;
     setLineups(prev => prev.map(l => l.matchId === currentLineup.matchId ? updater(l) : l));
   };
 
-  // CRUD / helpers
+  // CRUD
   const addPlayer = (p: Omit<Player,"id">) => setPlayers(prev => [...prev, { ...p, id: crypto.randomUUID() }]);
   const removePlayer = (id: string) => {
     setPlayers(prev => prev.filter(p => p.id !== id));
@@ -161,16 +168,19 @@ export default function App() {
     });
   };
 
-  // Nav
+  /* ================================
+     Navigation
+  ==================================*/
   const Nav = () => (
     <div className="flex items-center gap-2 mb-6">
       {[
         { id: "players",   label: "Joueurs" },
         { id: "matches",   label: "Matchs" },
         { id: "presences", label: "Présences" },
-        { id: "lineup",    label: "Compos" }
+        { id: "lineup",    label: "Compos" },
       ].map(t => (
-        <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`px-4 py-2 rounded-xl border ${activeTab===t.id? "bg-indigo-600 text-white border-indigo-600" : "bg-white hover:bg-gray-50"}`}>
+        <button key={t.id} onClick={() => setActiveTab(t.id as any)}
+          className={`px-4 py-2 rounded-xl border ${activeTab===t.id? "bg-indigo-600 text-white border-indigo-600" : "bg-white hover:bg-gray-50"}`}>
           {t.label}
         </button>
       ))}
@@ -178,44 +188,66 @@ export default function App() {
     </div>
   );
 
-  // --- PLAYERS (formulaire en colonnes empilées, 1 champ par ligne)
+  /* ================================
+     Onglet JOUEURS
+     (formulaire : 1 champ par ligne)
+  ==================================*/
   const PlayersSection = () => {
-    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
+    const [draft, setDraft] = useState<Omit<Player,"id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
 
     return (
-      <Section title="Base Joueurs" subtitle="Chaque champ sur sa propre ligne pour une saisie claire.">
+      <Section title="Base Joueurs" subtitle="Saisie verticale : un champ par ligne (scroll possible).">
 
-        {/* 1 champ par ligne */}
+        {/* Champs empilés (une ligne chacun) */}
         <div className="flex flex-col gap-3">
-          <Field label="Nom"><TextInput value={draft.nom} onChange={e=>setDraft({...draft, nom:e.target.value})} placeholder="Dupont" /></Field>
-          <Field label="Prénom"><TextInput value={draft.prenom} onChange={e=>setDraft({...draft, prenom:e.target.value})} placeholder="Alex" /></Field>
-          <Field label="Licence"><TextInput value={draft.licence} onChange={e=>setDraft({...draft, licence:e.target.value})} placeholder="A1234" /></Field>
+          <Field label="Nom">
+            <TextInput value={draft.nom} onChange={e=>setDraft({...draft, nom:e.target.value})} placeholder="Dupont" />
+          </Field>
+
+          <Field label="Prénom">
+            <TextInput value={draft.prenom} onChange={e=>setDraft({...draft, prenom:e.target.value})} placeholder="Alex" />
+          </Field>
+
+          <Field label="Licence">
+            <TextInput value={draft.licence} onChange={e=>setDraft({...draft, licence:e.target.value})} placeholder="A1234" />
+          </Field>
+
           <Field label="Sexe">
             <Select value={draft.sexe} onChange={e=>setDraft({...draft, sexe: e.target.value as "Homme" | "Femme"})}>
               <option value="Homme">Homme</option>
               <option value="Femme">Femme</option>
             </Select>
           </Field>
-          <Field label="Position N°1">
+
+          <Field label="1er poste">
             <Select value={draft.pos1} onChange={e=>setDraft({...draft, pos1: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-          <Field label="Position N°2">
+
+          <Field label="2ème poste">
             <Select value={draft.pos2} onChange={e=>setDraft({...draft, pos2: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-          <Field label="Position N°3">
+
+          <Field label="3ème poste">
             <Select value={draft.pos3} onChange={e=>setDraft({...draft, pos3: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-          <Field label="Commentaires (facultatif)"><TextInput value={draft.note ?? ""} onChange={e=>setDraft({...draft, note:e.target.value})} placeholder="Capitaine, etc." /></Field>
+
+          <Field label="Commentaires (facultatif)">
+            <TextInput value={draft.note ?? ""} onChange={e=>setDraft({...draft, note:e.target.value})} placeholder="Capitaine, infos utiles…" />
+          </Field>
         </div>
 
         <div className="mt-4">
-          <Button onClick={()=>{ if (!draft.nom || !draft.prenom) return; addPlayer(draft); setDraft({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" }); }}>
+          <Button onClick={()=>{
+            if (!draft.nom || !draft.prenom) return;
+            addPlayer(draft);
+            setDraft({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
+          }}>
             Ajouter le joueur
           </Button>
         </div>
@@ -228,9 +260,9 @@ export default function App() {
                 <th>Prénom</th>
                 <th>Licence</th>
                 <th>Sexe</th>
-                <th>Pos. N°1</th>
-                <th>Pos. N°2</th>
-                <th>Pos. N°3</th>
+                <th>1er poste</th>
+                <th>2ème poste</th>
+                <th>3ème poste</th>
                 <th>Commentaires</th>
                 <th></th>
               </tr>
@@ -257,20 +289,29 @@ export default function App() {
     );
   };
 
-  // --- MATCHES
+  /* ================================
+     Onglet MATCHS
+  ==================================*/
   const MatchesSection = () => {
-    const [draft, setDraft] = useState<Match>({ id: "", date: new Date().toISOString().slice(0,10), opponent: "", venue: "Domicile", comment: "" });
+    const [draft, setDraft] = useState<Match>({ id:"", date:new Date().toISOString().slice(0,10), opponent:"", venue:"Domicile", comment:"" });
+
     return (
-      <Section title="Matchs" subtitle="ID unique, date et adversaire">
+      <Section title="Matchs" subtitle="ID, date, adversaire, lieu">
         <div className="flex flex-col gap-3">
-          <Field label="Match ID"><TextInput placeholder="M3" value={draft.id} onChange={e=>setDraft({...draft, id: e.target.value})}/></Field>
-          <Field label="Date"><TextInput type="date" value={draft.date} onChange={e=>setDraft({...draft, date: e.target.value})}/></Field>
-          <Field label="Adversaire"><TextInput placeholder="US Rance" value={draft.opponent} onChange={e=>setDraft({...draft, opponent: e.target.value})}/></Field>
-          <Field label="Lieu"><TextInput value={draft.venue} onChange={e=>setDraft({...draft, venue: e.target.value})}/></Field>
-          <Field label="Commentaires (facultatif)"><TextInput value={draft.comment} onChange={e=>setDraft({...draft, comment: e.target.value})}/></Field>
+          <Field label="Match ID"><TextInput value={draft.id} onChange={e=>setDraft({...draft, id:e.target.value})} placeholder="M3"/></Field>
+          <Field label="Date"><TextInput type="date" value={draft.date} onChange={e=>setDraft({...draft, date:e.target.value})}/></Field>
+          <Field label="Adversaire"><TextInput value={draft.opponent} onChange={e=>setDraft({...draft, opponent:e.target.value})} placeholder="US Rance"/></Field>
+          <Field label="Lieu"><TextInput value={draft.venue} onChange={e=>setDraft({...draft, venue:e.target.value})} placeholder="Domicile / Extérieur"/></Field>
+          <Field label="Commentaires (facultatif)"><TextInput value={draft.comment} onChange={e=>setDraft({...draft, comment:e.target.value})}/></Field>
         </div>
+
         <div className="mt-3 flex items-center gap-2">
-          <Button onClick={()=>{ if(!draft.id) return; addMatch(draft); setDraft({ id: "", date: new Date().toISOString().slice(0,10), opponent: "", venue: "Domicile", comment: "" });}}>Ajouter le match</Button>
+          <Button onClick={()=>{
+            if (!draft.id) return;
+            addMatch(draft);
+            setDraft({ id:"", date:new Date().toISOString().slice(0,10), opponent:"", venue:"Domicile", comment:"" });
+          }}>Ajouter le match</Button>
+
           <div className="ml-auto flex items-center gap-2">
             <span className="text-sm text-gray-500">Match courant :</span>
             <Select value={selectedMatchId} onChange={e=>setSelectedMatchId(e.target.value)}>
@@ -299,7 +340,9 @@ export default function App() {
     );
   };
 
-  // --- PRESENCES
+  /* ================================
+     Onglet PRESENCES
+  ==================================*/
   const PresencesSection = () => {
     const match = matches.find(m => m.id === selectedMatchId);
     return (
@@ -353,7 +396,9 @@ export default function App() {
     );
   };
 
-  // --- LINEUP
+  /* ================================
+     Onglet COMPOS
+  ==================================*/
   const LineupSection = () => {
     const lineup = currentLineup!;
     const setSlot = (zone: 1|2|3|4|5|6, patch: Partial<{playerId: string|undefined; plannedPos: Position|undefined}>) => {
@@ -410,13 +455,15 @@ export default function App() {
     );
   };
 
-  // --- RENDER
+  /* ================================
+     Render
+  ==================================*/
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Volley — Base joueurs, présences & compos</h1>
-          <p className="text-gray-600 mt-1">Formulaire joueurs avec champs empilés (un par ligne) et postes 2/3/4.</p>
+          <p className="text-gray-600 mt-1">Formulaire joueurs : un champ par ligne, pour scroller facilement.</p>
         </header>
 
         <Nav />
@@ -426,8 +473,9 @@ export default function App() {
         {activeTab === "presences" && <PresencesSection />}
         {activeTab === "lineup"    && <LineupSection />}
 
-        <footer className="mt-10 text-center text-xs text-gray-400">v0.2 — Données stockées localement.</footer>
+        <footer className="mt-10 text-center text-xs text-gray-400">v0.3 — Données stockées localement.</footer>
       </div>
     </div>
   );
 }
+``
