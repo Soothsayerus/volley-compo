@@ -9,9 +9,9 @@ type Player = {
   prenom: string;
   licence: string;
   sexe: "Homme" | "Femme";
-  pos1: Position;
-  pos2: Position;
-  pos3: Position;
+  Poste 1: Position;
+  Poste 2: Position;
+  Poste 3: Position;
   note?: string;
 };
 
@@ -118,7 +118,7 @@ export default function App() {
   useEffect(() => {
     if (players.length === 0) {
       setPlayers([
-        { id: crypto.randomUUID(), nom: "Dupont", prenom: "Alex", licence: "A1234", sexe: "Homme", pos1: "2 - Passe", pos2: "3 - Centre", pos3: "-", note: "Capitaine" }
+        { id: crypto.randomUUID(), nom: "Dupont", prenom: "Alex", licence: "A1234", sexe: "Homme", Poste 1: "2 - Passe", Poste 2: "3 - Centre", Poste 3: "-", note: "Capitaine" }
       ]);
     }
   }, []);
@@ -179,7 +179,7 @@ export default function App() {
   // --- PLAYERS TAB ---
   const PlayersSection = () => {
 
-    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
+    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", Poste 1:"-", Poste 2:"-", Poste 3:"-", note:"" });
 
     return (
       <Section title="Base Joueurs">
@@ -201,19 +201,19 @@ export default function App() {
           </Field>
 
           <Field label="Poste 1">
-            <Select value={draft.pos1} onChange={e=>setDraft({...draft,pos1:e.target.value as Position})}>
+            <Select value={draft.Poste 1} onChange={e=>setDraft({...draft,Poste 1:e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p}>{p}</option>)}
             </Select>
           </Field>
 
           <Field label="Poste 2">
-            <Select value={draft.pos2} onChange={e=>setDraft({...draft,pos2:e.target.value as Position})}>
+            <Select value={draft.Poste 2} onChange={e=>setDraft({...draft,Poste 2:e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p}>{p}</option>)}
             </Select>
           </Field>
 
           <Field label="Poste 3">
-            <Select value={draft.pos3} onChange={e=>setDraft({...draft,pos3:e.target.value as Position})}>
+            <Select value={draft.Poste 3} onChange={e=>setDraft({...draft,Poste 3:e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p}>{p}</option>)}
             </Select>
           </Field>
@@ -221,7 +221,7 @@ export default function App() {
         </div>
 
         <div className="mt-3">
-          <Button onClick={() => { addPlayer(draft); setDraft({nom:"",prenom:"",licence:"",sexe:"Homme",pos1:"-",pos2:"-",pos3:"-",note:""}); }}>
+          <Button onClick={() => { addPlayer(draft); setDraft({nom:"",prenom:"",licence:"",sexe:"Homme",Poste 1:"-",Poste 2:"-",Poste 3:"-",note:""}); }}>
             Ajouter joueur
           </Button>
         </div>
@@ -230,7 +230,7 @@ export default function App() {
           <thead>
             <tr className="text-left">
               <th>Nom</th><th>Prénom</th><th>Licence</th><th>Sexe</th>
-              <th>Pos1</th><th>Pos2</th><th>Pos3</th><th></th>
+              <th>Poste 1</th><th>Poste 2</th><th>Poste 3</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -240,9 +240,9 @@ export default function App() {
                 <td>{p.prenom}</td>
                 <td>{p.licence}</td>
                 <td>{p.sexe}</td>
-                <td><Tag text={p.pos1}/></td>
-                <td><Tag text={p.pos2}/></td>
-                <td><Tag text={p.pos3}/></td>
+                <td><Tag text={p.Poste 1}/></td>
+                <td><Tag text={p.Poste 2}/></td>
+                <td><Tag text={p.Poste 3}/></td>
                 <td><IconButton onClick={()=>removePlayer(p.id)}>Suppr</IconButton></td>
               </tr>
             ))}
