@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 // --- Types ---
-type Position = "Passeur" | "Central" | "Pointu" | "Réceptionneur-Attaquant" | "Libéro" | "-";
+type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu" | "-";
+
 
 type Player = {
   id: string;
@@ -33,7 +34,8 @@ type Lineup = {
 };
 
 // --- Constantes ---
-const POSITIONS: Position[] = ["Passeur", "Central", "Pointu", "Réceptionneur-Attaquant", "Libéro", "-"];
+const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu", "-"];
+
 
 // --- Helpers LocalStorage ---
 const LS_KEYS = {
