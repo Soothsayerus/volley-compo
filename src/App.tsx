@@ -190,56 +190,51 @@ export default function App() {
 
   /* ================================
      Onglet JOUEURS
-     (formulaire : 1 champ par ligne)
+     (formulaire : 1 champ par ligne, dans l'ordre demandé)
   ==================================*/
   const PlayersSection = () => {
     const [draft, setDraft] = useState<Omit<Player,"id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
 
     return (
-      <Section title="Base Joueurs" subtitle="Saisie verticale : un champ par ligne (scroll possible).">
+      <Section title="Base Joueurs" subtitle="Champs un par ligne, dans l'ordre : Nom, Prénom, Licence, Sexe, 1er poste, 2ème poste, 3ème poste.">
 
-        {/* Champs empilés (une ligne chacun) */}
+        {/* EXACTEMENT un champ par ligne, dans l'ordre */}
         <div className="flex flex-col gap-3">
           <Field label="Nom">
             <TextInput value={draft.nom} onChange={e=>setDraft({...draft, nom:e.target.value})} placeholder="Dupont" />
           </Field>
-
           <Field label="Prénom">
             <TextInput value={draft.prenom} onChange={e=>setDraft({...draft, prenom:e.target.value})} placeholder="Alex" />
           </Field>
-
           <Field label="Licence">
             <TextInput value={draft.licence} onChange={e=>setDraft({...draft, licence:e.target.value})} placeholder="A1234" />
           </Field>
-
           <Field label="Sexe">
             <Select value={draft.sexe} onChange={e=>setDraft({...draft, sexe: e.target.value as "Homme" | "Femme"})}>
               <option value="Homme">Homme</option>
               <option value="Femme">Femme</option>
             </Select>
           </Field>
-
           <Field label="1er poste">
             <Select value={draft.pos1} onChange={e=>setDraft({...draft, pos1: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-
           <Field label="2ème poste">
             <Select value={draft.pos2} onChange={e=>setDraft({...draft, pos2: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-
           <Field label="3ème poste">
             <Select value={draft.pos3} onChange={e=>setDraft({...draft, pos3: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
 
-          <Field label="Commentaires (facultatif)">
+          {/* Optionnel : commentaire (je le laisse mais on peut le retirer) */}
+          {/* <Field label="Commentaires (facultatif)">
             <TextInput value={draft.note ?? ""} onChange={e=>setDraft({...draft, note:e.target.value})} placeholder="Capitaine, infos utiles…" />
-          </Field>
+          </Field> */}
         </div>
 
         <div className="mt-4">
@@ -263,7 +258,6 @@ export default function App() {
                 <th>1er poste</th>
                 <th>2ème poste</th>
                 <th>3ème poste</th>
-                <th>Commentaires</th>
                 <th></th>
               </tr>
             </thead>
@@ -277,7 +271,6 @@ export default function App() {
                   <td><Tag text={p.pos1} /></td>
                   <td><Tag text={p.pos2} /></td>
                   <td><Tag text={p.pos3} /></td>
-                  <td className="text-gray-500">{p.note ?? ""}</td>
                   <td className="text-right"><IconButton onClick={()=>removePlayer(p.id)}>Suppr</IconButton></td>
                 </tr>
               ))}
@@ -318,23 +311,6 @@ export default function App() {
               {matches.map(m => <option key={m.id} value={m.id}>{m.id} • {m.opponent} • {m.date}</option>)}
             </Select>
           </div>
-        </div>
-
-        <div className="mt-6 overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-600">
-                <th className="py-2">ID</th><th>Date</th><th>Adversaire</th><th>Lieu</th><th>Commentaires</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matches.map(m => (
-                <tr key={m.id} className="border-t">
-                  <td className="py-2">{m.id}</td><td>{m.date}</td><td>{m.opponent}</td><td>{m.venue}</td><td className="text-gray-500">{m.comment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </Section>
     );
@@ -377,9 +353,9 @@ export default function App() {
           </div>
 
           <div>
-            <h3 className="font-medium mb-2">Présents ({presentPlayers.length})</h3>
+            <h3 className="font-medium mb-2">Présents ({players.filter(p=>presentPlayerIds.has(p.id)).length})</h3>
             <div className="space-y-2">
-              {presentPlayers.map(p => (
+              {players.filter(p=>presentPlayerIds.has(p.id)).map(p => (
                 <div key={p.id} className="flex items-center justify-between border rounded-xl px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{p.nom} {p.prenom}</span>
@@ -388,7 +364,6 @@ export default function App() {
                   <IconButton onClick={()=> setPresence(selectedMatchId!, p.id, false)}>Retirer</IconButton>
                 </div>
               ))}
-              {presentPlayers.length===0 && <p className="text-gray-500">Aucun joueur marqué présent pour ce match.</p>}
             </div>
           </div>
         </div>
@@ -463,7 +438,7 @@ export default function App() {
       <div className="max-w-6xl mx-auto">
         <header className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold">Volley — Base joueurs, présences & compos</h1>
-          <p className="text-gray-600 mt-1">Formulaire joueurs : un champ par ligne, pour scroller facilement.</p>
+          <p className="text-gray-600 mt-1">Base joueurs : champs un par ligne pour scroller facilement.</p>
         </header>
 
         <Nav />
@@ -473,7 +448,7 @@ export default function App() {
         {activeTab === "presences" && <PresencesSection />}
         {activeTab === "lineup"    && <LineupSection />}
 
-        <footer className="mt-10 text-center text-xs text-gray-400">v0.3 — Données stockées localement.</footer>
+        <footer className="mt-10 text-center text-xs text-gray-400">v0.3.1 — Données stockées localement.</footer>
       </div>
     </div>
   );
