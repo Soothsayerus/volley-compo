@@ -190,7 +190,6 @@ export default function App() {
 
   /* ================================
      Onglet JOUEURS
-     (formulaire : 1 champ par ligne, dans l'ordre demandé)
   ==================================*/
   const PlayersSection = () => {
     const [draft, setDraft] = useState<Omit<Player,"id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
@@ -224,17 +223,13 @@ export default function App() {
             <Select value={draft.pos2} onChange={e=>setDraft({...draft, pos2: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
+        <div className="mt-3">      
           </Field>
           <Field label="3ème poste">
             <Select value={draft.pos3} onChange={e=>setDraft({...draft, pos3: e.target.value as Position})}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </Select>
           </Field>
-
-          {/* Optionnel : commentaire (je le laisse mais on peut le retirer) */}
-          {/* <Field label="Commentaires (facultatif)">
-            <TextInput value={draft.note ?? ""} onChange={e=>setDraft({...draft, note:e.target.value})} placeholder="Capitaine, infos utiles…" />
-          </Field> */}
         </div>
 
         <div className="mt-4">
