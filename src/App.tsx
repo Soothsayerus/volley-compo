@@ -215,7 +215,7 @@ export default function App() {
   );
 
   const PlayersSection = () => {
-const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", licence: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
+    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", licence: "", sexe: "", pos1: "-", pos2: "-", pos3: "-", note: "" });
     const canAdd = draft.name.trim().length > 1;
 
     return (
