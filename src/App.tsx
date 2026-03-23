@@ -1126,22 +1126,40 @@ const getRoleColor = (p: Player) => {
           {BOTTOM_ROW.map(z => <ZoneCell key={z} zone={z} />)}
         </div>
       </div>
+// Couleurs de fond + texte selon le rôle principal (pos1)
+const getRoleBg = (p: Player) => {
+  switch (p.pos1) {
+    case "2 - Passe":  return "#fef08a"; // jaune clair
+    case "3 - Centre": return "#bbf7d0"; // vert clair
+    case "4 - Pointu": return "#fed7aa"; // orange clair
+    default:           return ui.colors.cardBg;
+  }
+};
 
+const getRoleText = (p: Player) => {
+  switch (p.pos1) {
+    case "2 - Passe":  return "#713f12"; // brun/jaune foncé
+    case "3 - Centre": return "#14532d"; // vert foncé
+    case "4 - Pointu": return "#7c2d12"; // orange/brun foncé
+    default:           return ui.colors.text;
+  }
+};
+       
 {/* BANC — sélectionner un joueur (tap) */}
 <div style={{ marginTop:14 }}>
   <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
-<div
-  style={{
-    border:`1px solid ${ui.colors.border}`,
-    borderRadius:12,
-    padding:10,
-    minHeight:60,
-    display:"flex",
-    flexDirection:"column",   // 👈 les joueurs les uns en dessous des autres
-    gap:8
-  }}
->
+  <div
+    style={{
+      border:`1px solid ${ui.colors.border}`,
+      borderRadius:12,
+      padding:10,
+      minHeight:60,
+      display:"flex",
+      flexDirection:"column",   // 👈 un joueur par ligne
+      gap:8
+    }}
+  >
     {benchPlayers.length === 0 && (
       <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
     )}
@@ -1154,7 +1172,9 @@ const getRoleColor = (p: Player) => {
           onClick={() => setSelectedPlayerId(p.id)}
           style={{
             ...(active ? benchPillActive : benchPill),
-            borderColor: getRoleColor(p),   // 👈 couleur selon pos1
+            background: getRoleBg(p),   // 👈 fond selon pos1
+            color: getRoleText(p),      // 👈 texte lisible
+            borderColor: "transparent", // 👈 bordure discrète
           }}
           title="Sélectionner ce joueur puis taper une position"
         >
