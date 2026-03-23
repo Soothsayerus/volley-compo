@@ -1117,49 +1117,275 @@ const LineupSection = () => {
         </div>
       </div>
 
-{/* BANC — sélectionner un joueur */}
-<div style={{ marginTop:14 }}>
-  <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
+/* ================================
+   Onglet COMPOS — Sélection Banc → Tap Position (mobile-friendly)
+   Lignes : 4‑3‑2 (haut) / 5‑6‑1 (bas)
+   Rôles : 2&5 = Passe, 1&4 = Pointu, 3&6 = Centre
+   1 joueur max par case
+==================================*/
+const LineupSection = () => {
+  const lineup = currentLineup!;
 
-  <div
-    style={{
-      border:`1px solid ${ui.colors.border}`,
-      borderRadius:12,
-      padding:10,
-      minHeight:60,
-      display:"flex",
-      flexWrap:"wrap",
-      gap:8
-    }}
-  >
-    {benchPlayers.length === 0 && (
-      <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
-    )}
+  // Rôles par zone (corrigé selon ta demande)
+  const ROLE_BY_ZONE: Record<1|2|3|4|5|6, Position> = {
+    2: "2 - Passe",
+    5: "2 - Passe",
+    4: "4 - Pointu",
+    1: "4 - Pointu",
+    3: "3 - Centre",
+    6: "3 - Centre",
+  };
 
-    {benchPlayers.map(p => {
-      const active = selectedPlayerId === p.id;
-      return (
-        <div
-          key={p.id}
-          onClick={() => setSelectedPlayerId(p.id)}
-          style={{
-            ...(active ? benchPillActive : benchPill),
-            borderColor: getRoleColor(p),   // 👈 couleur selon pos1
-          }}
-          title="Sélectionner ce joueur puis taper une position"
-        >
-          <div style={avatar}>{initials(p.nom, p.prenom)}</div>
-          <span style={{ fontWeight:600 }}>{p.prenom} {p.nom}</span>
-          <span style={{ display:"inline-flex", gap:6 }}>
-            <Tag text={p.pos1} />
-            {p.pos2 && <Tag text={p.pos2} />}
-            {p.pos3 && <Tag text={p.pos3} />}
-          </span>
-        </div>
+  // Disposition terrain
+  const TOP_ROW: (1|2|3|4|5|6)[]    = [4, 3, 2];
+  const BOTTOM_ROW: (1|2|3|4|5|6)[] = [5, 6, 1];
+
+  // Récup slot par zone
+  const getSlot = (zone: 1|2|3|4|5|6) =>
+    lineup.slots.find(s => s.zone === zone) ?? { zone, playerId: undefined };
+
+  // Sélection courante (joueur choisi dans le banc)
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+
+  // Joueurs “assignés” et “banc”
+  const assignedIds = new Set(
+    lineup.slots.map(s => s.playerId).filter(Boolean) as string[]
+  );
+  const benchPlayers = presentPlayers.filter(p => !assignedIds.has(p.id));
+
+  // Le joueur correspond-il au rôle attendu par la zone ?
+  const matchesRole = (p: Player, z: 1|2|3|4|5|6) =>
+    [p.pos1, p.pos2, p.pos3].includes(ROLE_BY_ZONE[z]);
+
+  // Placer un joueur dans une zone (retire d’abord toute précédente affectation)
+  const placeSelectedInZone = (zone: 1|2|3|4|5|6) => {
+    if (!selectedPlayerId) return;
+
+    const plannedPos = ROLE_BY_ZONE[zone];
+    updateLineup(l => {
+      // 1) Retire ce joueur s'il est déjà posé ailleurs
+      let slots = l.slots.map(s =>
+        s.playerId === selectedPlayerId ? { ...s, playerId: undefined } : s
       );
-    })}
-  </div>
-</div>
+
+      // 2) Si la zone ciblée est occupée, on libère l’occupant (il retourne au banc)
+      const current = slots.find(s => s.zone === zone);
+      if (current?.playerId && current.playerId !== selectedPlayerId) {
+        slots = slots.map(s =>
+          s.zone === zone ? { ...s, playerId: undefined } : s
+        );
+      }
+
+      // 3) Place le joueur sélectionné dans la zone
+      slots = slots.map(s =>
+        s.zone === zone ? { ...s, playerId: selectedPlayerId, plannedPos } : s
+      );
+
+      return { ...l, slots };
+    });
+
+    // Laisse la sélection active pour enchaîner des placements si tu veux :
+    // setSelectedPlayerId(null);
+  };
+
+  // Vider une zone → remet le joueur au banc
+  const clearZone = (zone: 1|2|3|4|5|6) => {
+    updateLineup(l => ({
+      ...l,
+      slots: l.slots.map(s => s.zone === zone ? { ...s, playerId: undefined } : s)
+    }));
+  };
+
+  // Vider toutes les positions
+  const clearAll = () => {
+    updateLineup(l => ({ ...l, slots: l.slots.map(s => ({ ...s, playerId: undefined })) }));
+  };
+
+  // Répartition auto (pos1 en priorité puis pos2/pos3) dans l’ordre 4‑3‑2 / 5‑6‑1
+  const autoDistribute = () => {
+    const order: (1|2|3|4|5|6)[] = [...TOP_ROW, ...BOTTOM_ROW];
+    const available = [...presentPlayers];
+
+    const pick = (role: Position) => {
+      let i = available.findIndex(p => p.pos1 === role);
+      if (i === -1) i = available.findIndex(p => p.pos2 === role || p.pos3 === role);
+      return i >= 0 ? available.splice(i, 1)[0] : undefined;
+    };
+
+    updateLineup(l => {
+      let slots = l.slots.map(s => ({ ...s, playerId: undefined }));
+      for (const z of order) {
+        const p = pick(ROLE_BY_ZONE[z]);
+        if (p) slots = slots.map(s => s.zone === z ? { ...s, playerId: p.id } : s);
+      }
+      return { ...l, slots };
+    });
+  };
+
+  // === STYLES ===
+  const court: React.CSSProperties = {
+    border: `2px solid ${ui.colors.border}`,
+    borderRadius: 16,
+    padding: 12,
+    background: ui.colors.cardBg
+  };
+  const rowGrid: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: 10
+  };
+  const zoneBox = (alert = false): React.CSSProperties => ({
+    border: `1px dashed ${ui.colors.border}`,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 70,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: alert ? "#fca5a520" : ui.colors.cardBg,
+    cursor: "pointer",
+  });
+  const avatar: React.CSSProperties = {
+    width: 26, height: 26, borderRadius: 999,
+    background: ui.colors.avatarBg,
+    display: "flex", justifyContent: "center", alignItems: "center",
+    fontSize: 11, fontWeight: 700, color: ui.colors.avatarText
+  };
+  const benchPill: React.CSSProperties = {
+    display:"inline-flex", alignItems:"center", gap:6,
+    border:`1px solid ${ui.colors.border}`, background: ui.colors.cardBg,
+    padding:"8px 12px", borderRadius: 999,
+    cursor:"pointer",
+  };
+  const benchPillActive: React.CSSProperties = {
+    ...benchPill,
+    outline: `2px solid ${ui.colors.primary}`,
+    boxShadow: "0 0 0 2px rgba(0,0,0,0.05)",
+  };
+
+  // Couleur de bordure selon rôle principal (pos1) — JAUNE / VERT / ORANGE
+  const getRoleColor = (p: Player) => {
+    switch (p.pos1) {
+      case "2 - Passe":   return "#eab308"; // jaune
+      case "3 - Centre":  return "#22c55e"; // vert
+      case "4 - Pointu":  return "#f97316"; // orange
+      default:            return ui.colors.border;
+    }
+  };
+
+  // === Cellule de position (terrain) – affiche UNIQUEMENT le PRÉNOM ===
+  const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
+    const slot = getSlot(zone);
+    const p = players.find(pp => pp.id === slot.playerId);
+    const ok = p ? matchesRole(p, zone) : false;
+
+    return (
+      <div>
+        <div style={{ fontSize:12, color:ui.colors.muted, marginBottom:4 }}>
+          Position {zone} • {ROLE_BY_ZONE[zone].split(" - ")[1]}
+        </div>
+
+        <div
+          style={zoneBox(!!p && !ok)}
+          onClick={() => placeSelectedInZone(zone)}
+        >
+          {p ? (
+            <>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={avatar}>{initials(p.nom, p.prenom)}</div>
+                <div style={{ fontWeight:700 }}>{p.prenom}</div>
+                {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
+              </div>
+
+              <IconButton onClick={(e) => { e.stopPropagation(); clearZone(zone); }}>
+                Suppr
+              </IconButton>
+            </>
+          ) : (
+            <div style={{ color: ui.colors.muted }}>
+              Tap pour placer le joueur sélectionné…
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Section
+      title="Composition – Terrain (tap pour placer)"
+      subtitle="Sélectionne un joueur dans le banc puis tape une position (4‑3‑2 / 5‑6‑1)."
+    >
+      {/* Sélecteur de match */}
+      <div style={{ ...hStack(8), marginBottom:10 }}>
+        <span style={{ fontSize:12, color:ui.colors.muted }}>Match</span>
+        <Select value={selectedMatchId} onChange={(e)=>setSelectedMatchId(e.target.value)}>
+          {matches.map(m => (
+            <option key={m.id} value={m.id}>
+              {m.id} • {m.opponent} • {m.date}
+            </option>
+          ))}
+        </Select>
+        <div style={{ marginLeft:"auto", fontSize:12, color: ui.colors.muted }}>
+          {presentPlayers.length} présent(s)
+        </div>
+      </div>
+
+      {/* TERRAIN */}
+      <div style={court}>
+        {/* Ligne haute : 4 - 3 - 2 */}
+        <div style={{ ...rowGrid, marginBottom:12 }}>
+          {TOP_ROW.map(z => <ZoneCell key={z} zone={z} />)}
+        </div>
+        {/* Ligne basse : 5 - 6 - 1 */}
+        <div style={rowGrid}>
+          {BOTTOM_ROW.map(z => <ZoneCell key={z} zone={z} />)}
+        </div>
+      </div>
+
+      {/* BANC — sélectionner un joueur (tap) */}
+      <div style={{ marginTop:14 }}>
+        <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
+
+        <div
+          style={{
+            border:`1px solid ${ui.colors.border}`,
+            borderRadius:12,
+            padding:10,
+            minHeight:60,
+            display:"flex",
+            flexWrap:"wrap",
+            gap:8
+          }}
+        >
+          {benchPlayers.length === 0 && (
+            <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
+          )}
+
+          {benchPlayers.map(p => {
+            const active = selectedPlayerId === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() => setSelectedPlayerId(p.id)}
+                style={{
+                  ...(active ? benchPillActive : benchPill),
+                  borderColor: getRoleColor(p),   // couleur selon pos1
+                }}
+                title="Sélectionner ce joueur puis taper une position"
+              >
+                <div style={avatar}>{initials(p.nom, p.prenom)}</div>
+                <span style={{ fontWeight:600 }}>{p.prenom} {p.nom}</span>
+                <span style={{ display:"inline-flex", gap:6 }}>
+                  <Tag text={p.pos1} />
+                  {p.pos2 && <Tag text={p.pos2} />}
+                  {p.pos3 && <Tag text={p.pos3} />}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Actions */}
       <div style={{ ...hStack(8), marginTop:12, flexWrap:"wrap" }}>
