@@ -905,8 +905,9 @@ const PresencesSection = () => {
   );
 };
 /* ================================
-   Onglet COMPOS — Sélection Banc → Tap Position (mobile-friendly)
-   Lignes : 4‑3‑2 (haut) / 5‑6‑1 (bas)
+   Onglet COMPOS — Sélection Banc → Tap Position (responsive mobile)
+   Lignes desktop : 4‑3‑2 (haut) / 5‑6‑1 (bas)
+   Mobile : liste verticale 4,3,2,5,6,1
    Rôles : 2&5 = Passe, 1&4 = Pointu, 3&6 = Centre
    1 joueur max par case
 ==================================*/
@@ -923,9 +924,10 @@ const LineupSection = () => {
     6: "3 - Centre",
   };
 
-  // Disposition terrain
+  // Disposition terrain (desktop) + ordre compact (mobile)
   const TOP_ROW: (1|2|3|4|5|6)[]    = [4, 3, 2];
   const BOTTOM_ROW: (1|2|3|4|5|6)[] = [5, 6, 1];
+  const MOBILE_ORDER: (1|2|3|4|5|6)[] = [4, 3, 2, 5, 6, 1];
 
   // Récup slot par zone
   const getSlot = (zone: 1|2|3|4|5|6) =>
@@ -950,12 +952,12 @@ const LineupSection = () => {
 
     const plannedPos = ROLE_BY_ZONE[zone];
     updateLineup(l => {
-      // 1) Retire le joueur de sa zone actuelle (si déjà posé)
+      // 1) Retire le joueur s'il est déjà posé ailleurs
       let slots = l.slots.map(s =>
         s.playerId === selectedPlayerId ? { ...s, playerId: undefined } : s
       );
 
-      // 2) Si la zone ciblée est occupée, on renvoie l'occupant au banc (en le retirant seulement)
+      // 2) Si la zone ciblée est occupée, on libère l’occupant (retour banc)
       const current = slots.find(s => s.zone === zone);
       if (current?.playerId && current.playerId !== selectedPlayerId) {
         slots = slots.map(s =>
@@ -970,11 +972,7 @@ const LineupSection = () => {
 
       return { ...l, slots };
     });
-
-    // On peut garder la sélection active pour enchaîner plusieurs placements
-    // ou l'enlever pour éviter des “taps” involontaires. Ici je la garde active.
-    // Si tu préfères, dé-commente la ligne ci-dessous pour la vider après placement.
-    // setSelectedPlayerId(null);
+    // Laisse la sélection active pour enchaîner des placements
   };
 
   // Vider une zone → remet le joueur au banc
@@ -1011,23 +1009,34 @@ const LineupSection = () => {
     });
   };
 
-  // Styles
+  /* ========== Responsive (mobile ≤ 480px) ========== */
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 480 : false
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 480);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // ========== STYLES (adaptés au mobile) ==========
   const court: React.CSSProperties = {
     border: `2px solid ${ui.colors.border}`,
     borderRadius: 16,
-    padding: 12,
+    padding: isMobile ? 8 : 12,
     background: ui.colors.cardBg
   };
   const rowGrid: React.CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 10
+    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
+    gap: isMobile ? 8 : 10
   };
   const zoneBox = (alert = false): React.CSSProperties => ({
     border: `1px dashed ${ui.colors.border}`,
     borderRadius: 12,
-    padding: 12,
-    minHeight: 70,
+    padding: isMobile ? 8 : 12,
+    minHeight: isMobile ? 56 : 70,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1035,16 +1044,28 @@ const LineupSection = () => {
     cursor: "pointer",
   });
   const avatar: React.CSSProperties = {
-    width: 26, height: 26, borderRadius: 999,
+    width: isMobile ? 22 : 26,
+    height: isMobile ? 22 : 26,
+    borderRadius: 999,
     background: ui.colors.avatarBg,
-    display: "flex", justifyContent: "center", alignItems: "center",
-    fontSize: 11, fontWeight: 700, color: ui.colors.avatarText
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: isMobile ? 10 : 11,
+    fontWeight: 700,
+    color: ui.colors.avatarText
   };
   const benchPill: React.CSSProperties = {
-    display:"inline-flex", alignItems:"center", gap:6,
-    border:`1px solid ${ui.colors.border}`, background: ui.colors.cardBg,
-    padding:"8px 12px", borderRadius: 999,
+    display:"inline-flex",
+    alignItems:"center",
+    gap:6,
+    border:`1px solid ${ui.colors.border}`,
+    background: ui.colors.cardBg,
+    padding: isMobile ? "6px 10px" : "8px 12px",
+    borderRadius: 999,
     cursor:"pointer",
+    // Astuce : pleine largeur en mobile pour une meilleure lisibilité
+    width: isMobile ? "100%" : undefined,
   };
   const benchPillActive: React.CSSProperties = {
     ...benchPill,
@@ -1052,6 +1073,7 @@ const LineupSection = () => {
     boxShadow: "0 0 0 2px rgba(0,0,0,0.05)",
   };
 
+  // === Cellule de position (terrain) – affiche UNIQUEMENT le PRÉNOM ===
   const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
     const slot = getSlot(zone);
     const p = players.find(pp => pp.id === slot.playerId);
@@ -1059,25 +1081,33 @@ const LineupSection = () => {
 
     return (
       <div>
-        <div style={{ fontSize:12, color:ui.colors.muted, marginBottom:4 }}>
+        <div style={{ fontSize: isMobile ? 11 : 12, color: ui.colors.muted, marginBottom: 4 }}>
           Position {zone} • {ROLE_BY_ZONE[zone].split(" - ")[1]}
         </div>
 
-        {/* Tap sur la case → place le joueur sélectionné si présent */}
-        <div style={zoneBox(!!p && !ok)} onClick={() => placeSelectedInZone(zone)}>
+        <div
+          style={zoneBox(!!p && !ok)}
+          onClick={() => placeSelectedInZone(zone)}
+        >
           {p ? (
             <>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={avatar}>{initials(p.nom, p.prenom)}</div>
+                <div style={{ fontWeight:700, fontSize: isMobile ? 13 : 14 }}>{p.prenom}</div>
+                {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
+              </div>
 
-                {/* 👇 Uniquement le prénom dans la case */}
-                <div style={{ fontWeight:700 }}>{p.prenom}</div>
-
-
-              <IconButton onClick={(e) => { e.stopPropagation(); clearZone(zone); }}>
+              <IconButton
+                style={{ padding: isMobile ? "6px 8px" : undefined }}
+                onClick={(e) => { e.stopPropagation(); clearZone(zone); }}
+              >
                 Suppr
               </IconButton>
             </>
           ) : (
-            <div style={{ color: ui.colors.muted }}>Tap pour placer le joueur sélectionné…</div>
+            <div style={{ color: ui.colors.muted, fontSize: isMobile ? 12 : 13 }}>
+              Tap pour placer le joueur sélectionné…
+            </div>
           )}
         </div>
       </div>
@@ -1087,36 +1117,53 @@ const LineupSection = () => {
   return (
     <Section
       title="Composition – Terrain (tap pour placer)"
-      subtitle="Sélectionne un joueur dans le banc puis tape une position (4‑3‑2 / 5‑6‑1)."
+      subtitle="Sélectionne un joueur dans le banc puis tape une position."
     >
       {/* Sélecteur de match */}
-      <div style={{ ...hStack(8), marginBottom:10 }}>
-        <span style={{ fontSize:12, color:ui.colors.muted }}>Match</span>
-        <Select value={selectedMatchId} onChange={(e)=>setSelectedMatchId(e.target.value)}>
+      <div style={{ ...hStack(8), marginBottom:10, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+        <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
+        <Select
+          value={selectedMatchId}
+          onChange={(e)=>setSelectedMatchId(e.target.value)}
+          style={{ padding: isMobile ? "6px 8px" : undefined }}
+        >
           {matches.map(m => (
             <option key={m.id} value={m.id}>
               {m.id} • {m.opponent} • {m.date}
             </option>
           ))}
         </Select>
-        <div style={{ marginLeft:"auto", fontSize:12, color:ui.colors.muted }}>
+        <div style={{ marginLeft: "auto", fontSize: 12, color: ui.colors.muted }}>
           {presentPlayers.length} présent(s)
         </div>
       </div>
 
       {/* TERRAIN */}
       <div style={court}>
-        {/* Ligne haute : 4 - 3 - 2 */}
-        <div style={{ ...rowGrid, marginBottom:12 }}>
-          {TOP_ROW.map(z => <ZoneCell key={z} zone={z} />)}
-        </div>
-        {/* Ligne basse : 5 - 6 - 1 */}
-        <div style={rowGrid}>
-          {BOTTOM_ROW.map(z => <ZoneCell key={z} zone={z} />)}
-        </div>
+        {isMobile ? (
+          // 🟡 Mode compact mobile : 1 case par ligne, dans l'ordre 4,3,2,5,6,1
+          <div style={rowGrid}>
+            {MOBILE_ORDER.map(z => (
+              <ZoneCell key={z} zone={z} />
+            ))}
+          </div>
+        ) : (
+          // 🔵 Desktop : 2 lignes 3 colonnes
+          <>
+            <div style={{ ...rowGrid, marginBottom:12 }}>
+              {TOP_ROW.map(z => <ZoneCell key={z} zone={z} />)}
+            </div>
+            <div style={rowGrid}>
+              {BOTTOM_ROW.map(z => <ZoneCell key={z} zone={z} />)}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* BANC — sélectionner un joueur (tap) */}
+      {/* BANC — sélectionner un joueur (tap)
+          👉 Tu peux laisser tel quel (wrap) ou le passer en colonne. 
+          Si tu veux la colonne : remplace flexWrap:"wrap" par flexDirection:"column".
+      */}
       <div style={{ marginTop:14 }}>
         <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
@@ -1127,7 +1174,7 @@ const LineupSection = () => {
             padding:10,
             minHeight:60,
             display:"flex",
-            flexWrap:"wrap",
+            flexDirection: "column", // ← si tu veux strictement un par ligne
             gap:8
           }}
         >
@@ -1165,8 +1212,6 @@ const LineupSection = () => {
     </Section>
   );
 };
-
-
   /* ================================
      Render
   ==================================*/
