@@ -802,7 +802,7 @@ export default function App() {
           <header style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Composition</div>
             <div style={{ color: ui.colors.muted, marginTop: 4, fontSize: 14 }}>
-              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données dans stockées en locacl.)
+              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données dans stockées en local.)
             </div>
           </header>
 
