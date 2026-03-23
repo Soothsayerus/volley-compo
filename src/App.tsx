@@ -9,7 +9,6 @@ type Player = {
   id: string;
   nom: string;
   prenom: string;
-  licence: string;
   sexe: "Homme" | "Femme";
   pos1: Position;
   pos2: Position;
@@ -36,6 +35,17 @@ type Lineup = {
   slots: { zone: 1|2|3|4|5|6; playerId?: string; plannedPos?: Position }[];
 };
 
+type Theme = "light" | "dark";
+
+type SharedState = {
+  players: Player[];
+  matches: Match[];
+  presences: Presence[];
+  lineups: Lineup[];
+  selectedMatchId?: string;
+  theme?: Theme;
+};
+
 const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu", "-"];
 
 const LS_KEYS = {
@@ -43,6 +53,7 @@ const LS_KEYS = {
   matches: "volley.matches.v1",
   presences: "volley.presences.v1",
   lineups:  "volley.lineups.v1",
+  theme:    "volley.theme.v1",
 };
 
 /* ================================
@@ -56,24 +67,104 @@ function saveLS<T>(key: string, data: T) {
 }
 
 /* ================================
-   Petits composants UI (sans Tailwind)
-   (styles inline pour un rendu propre partout)
+   Helpers partage URL (Base64 UTF-8)
 ==================================*/
-const card: React.CSSProperties = { background:"#fff", borderRadius:16, boxShadow:"0 6px 18px rgba(0,0,0,0.06)", padding:20 };
+function encodeStateToBase64(obj: unknown): string {
+  const json = JSON.stringify(obj);
+  const utf8 = new TextEncoder().encode(json);
+  let binary = "";
+  utf8.forEach(b => (binary += String.fromCharCode(b)));
+  return btoa(binary);
+}
+function decodeStateFromBase64<T>(b64: string): T {
+  const binary = atob(b64);
+  const bytes = new Uint8Array([...binary].map(c => c.charCodeAt(0)));
+  const json = new TextDecoder().decode(bytes);
+  return JSON.parse(json) as T;
+}
+
+/* ================================
+   Styles avec thèmes (inline)
+   (tokens + petites factories)
+==================================*/
+function tokens(theme: Theme) {
+  if (theme === "dark") {
+    return {
+      pageBg: "#0b1220",
+      text: "#e5e7eb",
+      textMuted: "#94a3b8",
+      label: "#a1a1aa",
+      cardBg: "#0f172a",
+      border: "#334155",
+      inputBg: "#0b1220",
+      inputBorder: "#334155",
+      primary: "#6366f1",
+      primaryHover: "#5459e8",
+      ghostBg: "#0b1220",
+      ghostText: "#e5e7eb",
+      ghostBorder: "#334155",
+      tagBg: "#1f2937",
+      tagText: "#e5e7eb",
+      avatarBg: "#1e293b",
+      avatarText: "#c7d2fe",
+      accentZone: "#1f2937",
+      presentBg: "rgba(5,150,105,0.15)",
+      shadow: "0 6px 18px rgba(0,0,0,0.25)",
+      headerTitle: "#e2e8f0",
+      headerSub: "#94a3b8",
+    };
+  }
+  return {
+    pageBg: "#f1f5f9",
+    text: "#0f172a",
+    textMuted: "#64748b",
+    label: "#475569",
+    cardBg: "#ffffff",
+    border: "#e2e8f0",
+    inputBg: "#ffffff",
+    inputBorder: "#e5e7eb",
+    primary: "#4f46e5",
+    primaryHover: "#4338ca",
+    ghostBg: "#f8fafc",
+    ghostText: "#0f172a",
+    ghostBorder: "#e2e8f0",
+    tagBg: "#f1f5f9",
+    tagText: "#0f172a",
+    avatarBg: "#eef2ff",
+    avatarText: "#3730a3",
+    accentZone: "#ffffff",
+    presentBg: "#ecfdf5",
+    shadow: "0 6px 18px rgba(0,0,0,0.06)",
+    headerTitle: "#0f172a",
+    headerSub: "#64748b",
+  };
+}
 const hStack = (gap=8): React.CSSProperties => ({ display:"flex", alignItems:"center", gap });
 const vStack = (gap=12): React.CSSProperties => ({ display:"flex", flexDirection:"column", gap });
-const labelStyle: React.CSSProperties = { fontSize:12, color:"#475569" };
-const inputStyle: React.CSSProperties = { border:"1px solid #e5e7eb", borderRadius:10, padding:"10px 12px", fontSize:14, outline:"none" };
-const buttonStyle: React.CSSProperties = { background:"#4f46e5", color:"#fff", border:"none", borderRadius:12, padding:"10px 14px", cursor:"pointer" };
-const ghostButton: React.CSSProperties = { background:"#f8fafc", color:"#0f172a", border:"1px solid #e2e8f0", borderRadius:10, padding:"8px 10px", cursor:"pointer" };
-const tag: React.CSSProperties = { background:"#f1f5f9", color:"#0f172a", borderRadius:999, padding:"2px 8px", fontSize:12 };
 
-const Section: React.FC<{title:string; subtitle?:string; right?:React.ReactNode;}> = ({title, subtitle, right, children}) => (
-  <div style={card}>
+const card = (t: ReturnType<typeof tokens>): React.CSSProperties => ({
+  background: t.cardBg, borderRadius:16, boxShadow: t.shadow, padding:20, border: `1px solid ${t.border}`
+});
+const labelStyle = (t: ReturnType<typeof tokens>): React.CSSProperties => ({ fontSize:12, color: t.label });
+const inputStyle = (t: ReturnType<typeof tokens>): React.CSSProperties => ({
+  background: t.inputBg, color: t.text, border:`1px solid ${t.inputBorder}`, borderRadius:10, padding:"10px 12px", fontSize:14, outline:"none"
+});
+const buttonStyle = (t: ReturnType<typeof tokens>): React.CSSProperties => ({
+  background: t.primary, color:"#fff", border:"none", borderRadius:12, padding:"10px 14px", cursor:"pointer"
+});
+const ghostButton = (t: ReturnType<typeof tokens>): React.CSSProperties => ({
+  background: t.ghostBg, color: t.ghostText, border:`1px solid ${t.ghostBorder}`, borderRadius:10, padding:"8px 10px", cursor:"pointer"
+});
+const tag = (t: ReturnType<typeof tokens>): React.CSSProperties => ({
+  background: t.tagBg, color: t.tagText, borderRadius:999, padding:"2px 8px", fontSize:12, border:`1px solid ${t.border}`
+});
+
+const Section: React.FC<{title:string; subtitle?:string; right?:React.ReactNode; themeTokens: ReturnType<typeof tokens>}> = ({title, subtitle, right, children, themeTokens: t}) => (
+  <div style={card(t)}>
     <div style={{...hStack(12), justifyContent:"space-between", marginBottom:12}}>
       <div>
-        <div style={{ fontSize:18, fontWeight:700 }}>{title}</div>
-        {subtitle && <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>{subtitle}</div>}
+        <div style={{ fontSize:18, fontWeight:700, color: t.text }}>{title}</div>
+        {subtitle && <div style={{ fontSize:13, color: t.textMuted, marginTop:4 }}>{subtitle}</div>}
       </div>
       {right}
     </div>
@@ -81,30 +172,35 @@ const Section: React.FC<{title:string; subtitle?:string; right?:React.ReactNode;
   </div>
 );
 
-const Field: React.FC<{label:string;}> = ({label, children}) => (
+const Field: React.FC<{label:string; themeTokens: ReturnType<typeof tokens>}> = ({label, children, themeTokens: t}) => (
   <label style={vStack(6)}>
-    <span style={labelStyle}>{label}</span>
+    <span style={labelStyle(t)}>{label}</span>
     {children}
   </label>
 );
 
-const TextInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input {...props} style={{...inputStyle, ...(props.style||{})}} />
+const TextInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & {themeTokens: ReturnType<typeof tokens>}> = ({themeTokens: t, style, ...props}) => (
+  <input {...props} style={{...inputStyle(t), ...(style||{})}} />
 );
 
-const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
-  <select {...props} style={{...inputStyle, ...(props.style||{})}} />
+const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & {themeTokens: ReturnType<typeof tokens>}> = ({themeTokens: t, style, ...props}) => (
+  <select {...props} style={{...inputStyle(t), ...(style||{})}} />
 );
 
-const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({children, style, ...props}) => (
-  <button {...props} style={{...buttonStyle, ...(style||{})}}>{children}</button>
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {themeTokens: ReturnType<typeof tokens>}> = ({children, style, themeTokens: t, ...props}) => (
+  <button
+    {...props}
+    style={{...buttonStyle(t), ...(style||{})}}
+    onMouseOver={(e) => { (e.currentTarget as HTMLButtonElement).style.background = t.primaryHover; }}
+    onMouseOut={(e) => { (e.currentTarget as HTMLButtonElement).style.background = t.primary; }}
+  >{children}</button>
 );
 
-const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({children, style, ...props}) => (
-  <button {...props} style={{...ghostButton, ...(style||{})}}>{children}</button>
+const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {themeTokens: ReturnType<typeof tokens>}> = ({children, style, themeTokens: t, ...props}) => (
+  <button {...props} style={{...ghostButton(t), ...(style||{})}}>{children}</button>
 );
 
-const Tag: React.FC<{text:string;}> = ({text}) => <span style={tag}>{text}</span>;
+const Tag: React.FC<{text:string; themeTokens: ReturnType<typeof tokens>}> = ({text, themeTokens: t}) => <span style={tag(t)}>{text}</span>;
 
 function initials(nom:string, prenom:string){ return `${(prenom||"?").trim().charAt(0)||"?"}${(nom||"?").trim().charAt(0)||"?"}`.toUpperCase(); }
 
@@ -112,35 +208,71 @@ function initials(nom:string, prenom:string){ return `${(prenom||"?").trim().cha
    App
 ==================================*/
 export default function App() {
+  // Thème
+  const [theme, setTheme] = useState<Theme>(() => loadLS<Theme>(LS_KEYS.theme, (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? "dark" : "light"));
+  const t = tokens(theme);
+
   const [players, setPlayers]     = useState<Player[]>(() => loadLS(LS_KEYS.players, []));
   const [matches, setMatches]     = useState<Match[]>(() => loadLS(LS_KEYS.matches, []));
   const [presences, setPresences] = useState<Presence[]>(() => loadLS(LS_KEYS.presences, []));
   const [lineups, setLineups]     = useState<Lineup[]>(() => loadLS(LS_KEYS.lineups, []));
 
   const [activeTab, setActiveTab] = useState<"players"|"matches"|"presences"|"lineup">("players");
-  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(() => matches[0]?.id);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(() => (loadLS<Match[]>(LS_KEYS.matches, [])[0]?.id));
   const [sortBy, setSortBy] = useState<"nom"|"pos1">("nom");
+  const [importedFromURL, setImportedFromURL] = useState<boolean>(false);
 
+  useEffect(() => saveLS(LS_KEYS.theme, theme), [theme]);
   useEffect(() => saveLS(LS_KEYS.players, players), [players]);
   useEffect(() => saveLS(LS_KEYS.matches, matches), [matches]);
   useEffect(() => saveLS(LS_KEYS.presences, presences), [presences]);
   useEffect(() => saveLS(LS_KEYS.lineups, lineups), [lineups]);
 
-  // Données exemples minimales (pour démarrer)
+  // Import depuis URL ?s=...
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get("s");
+      if (s) {
+        const state = decodeStateFromBase64<SharedState>(s);
+        if (state.players) setPlayers(state.players);
+        if (state.matches) setMatches(state.matches);
+        if (state.presences) setPresences(state.presences);
+        if (state.lineups) setLineups(state.lineups);
+        if (state.theme) setTheme(state.theme);
+        const sm = state.selectedMatchId ?? state.matches?.[0]?.id;
+        setSelectedMatchId(sm);
+        setImportedFromURL(true);
+        // Nettoyer l'URL (facultatif) pour ne pas réimporter à chaque refresh
+        const url = new URL(window.location.href);
+        url.searchParams.delete("s");
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch (e) {
+      console.error("Erreur d'import d'état via URL:", e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Données exemples minimales (pour démarrer) — uniquement si rien et pas d'import URL
+  useEffect(() => {
+    if (importedFromURL) return;
     if (players.length === 0) {
       setPlayers([
-        { id: crypto.randomUUID(), nom: "Dupont", prenom: "Alex", licence: "A1234", sexe: "Homme", pos1: "2 - Passe", pos2: "3 - Centre", pos3: "-", note: "Capitaine" },
-        { id: crypto.randomUUID(), nom: "Martin", prenom: "Zoé",  licence: "B5678", sexe: "Femme", pos1: "3 - Centre", pos2: "4 - Pointu", pos3: "-", note: "" }
+        { id: crypto.randomUUID(), nom: "Dupont", prenom: "Alex", sexe: "Homme", pos1: "2 - Passe", pos2: "3 - Centre", pos3: "-", note: "Capitaine" },
+        { id: crypto.randomUUID(), nom: "Martin", prenom: "Zoé",  sexe: "Femme", pos1: "3 - Centre", pos2: "4 - Pointu", pos3: "-", note: "" }
       ]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (importedFromURL) return;
     if (matches.length === 0) {
       const m1: Match = { id: "M1", date: new Date().toISOString().slice(0,10), opponent: "US Rance", venue: "Domicile", comment: "Saison régulière" };
       setMatches([m1]); setSelectedMatchId(m1.id);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dérivés présences & lineup
@@ -152,7 +284,7 @@ export default function App() {
   const presentPlayers = useMemo(() => {
     const list = players.filter(p => presentPlayerIds.has(p.id));
     return sortBy === "nom"
-      ? [...list].sort((a,b)=> (a.nom+b.prenom).localeCompare(b.nom+b.prenom))
+      ? [...list].sort((a,b)=> (a.nom+a.prenom).localeCompare(b.nom+b.prenom))
       : [...list].sort((a,b)=> (a.pos1 || "").localeCompare(b.pos1 || ""));
   }, [players, presentPlayerIds, sortBy]);
 
@@ -190,8 +322,22 @@ export default function App() {
     });
   };
 
+  // Partage — construit l'URL + copie presse-papier
+  const shareURL = async () => {
+    const state: SharedState = { players, matches, presences, lineups, selectedMatchId, theme };
+    const encoded = encodeStateToBase64(state);
+    const url = `${window.location.origin}${window.location.pathname}?s=${encoded}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Lien de partage copié dans le presse‑papier !");
+    } catch {
+      // Fallback
+      prompt("Copie le lien ci‑dessous :", url);
+    }
+  };
+
   /* ================================
-     Navigation (style lisse)
+     Navigation
   ==================================*/
   const Nav = () => (
     <div style={{...hStack(8), marginBottom:16}}>
@@ -200,23 +346,27 @@ export default function App() {
         { id: "matches",   label: "Matchs" },
         { id: "presences", label: "Présences" },
         { id: "lineup",    label: "Compos" },
-      ].map(t => (
-        <button key={t.id} onClick={() => setActiveTab(t.id as any)}
-          style={{ ...(activeTab===t.id ? buttonStyle : ghostButton) }}>
-          {t.label}
+      ].map(ti => (
+        <button key={ti.id} onClick={() => setActiveTab(ti.id as any)}
+          style={{ ...(activeTab===ti.id ? buttonStyle(t) : ghostButton(t)) }}>
+          {ti.label}
         </button>
       ))}
-      <div style={{ marginLeft:"auto", fontSize:12, color:"#64748b" }}>Données locales (navigateur)</div>
+      <div style={{ marginLeft:"auto", ...hStack(8) }}>
+        <IconButton themeTokens={t} onClick={() => setTheme(prev => prev==="light"?"dark":"light")}>
+          {theme==="light" ? "🌙 Mode sombre" : "☀️ Mode clair"}
+        </IconButton>
+        <IconButton themeTokens={t} onClick={shareURL}>Partager</IconButton>
+        <div style={{ fontSize:12, color:t.textMuted }}>Données locales (navigateur)</div>
+      </div>
     </div>
   );
 
   /* ================================
      Onglet JOUEURS
-     (formulaire : 1 champ par ligne, plus “cards” de joueurs,
-      tris par Nom/Position pour s’inspirer du flux VolleyMatch)
   ==================================*/
   const PlayersSection = () => {
-    const [draft, setDraft] = useState<Omit<Player,"id">>({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
+    const [draft, setDraft] = useState<Omit<Player,"id">>({ nom:"", prenom:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
 
     return (
       <Section
@@ -224,54 +374,54 @@ export default function App() {
         subtitle="Renseigne les joueurs puis organise leur compo"
         right={
           <div style={hStack(8)}>
-            <span style={{fontSize:12, color:"#64748b"}}>Trier par</span>
-            <Select value={sortBy} onChange={e=>setSortBy(e.target.value as any)} style={{padding:"6px 10px"}}>
+            <span style={{fontSize:12, color:t.textMuted}}>Trier par</span>
+            <Select themeTokens={t} value={sortBy} onChange={e=>setSortBy(e.target.value as any)} style={{padding:"6px 10px"}}>
               <option value="nom">Nom</option>
               <option value="pos1">Position N°1</option>
             </Select>
           </div>
         }
+        themeTokens={t}
       >
-        {/* Champs empilés (une ligne chacun, dans l'ordre demandé) */}
+        {/* Champs empilés */}
         <div style={vStack(12)}>
-          <Field label="Nom"><TextInput value={draft.nom} onChange={e=>setDraft({...draft, nom:e.target.value})} placeholder="Dupont" /></Field>
-          <Field label="Prénom"><TextInput value={draft.prenom} onChange={e=>setDraft({...draft, prenom:e.target.value})} placeholder="Alex" /></Field>
-          <Field label="Licence"><TextInput value={draft.licence} onChange={e=>setDraft({...draft, licence:e.target.value})} placeholder="A1234" /></Field>
-          <Field label="Sexe">
-            <Select value={draft.sexe} onChange={e=>setDraft({...draft, sexe: e.target.value as "Homme" | "Femme"})}>
+          <Field label="Nom" themeTokens={t}><TextInput themeTokens={t} value={draft.nom} onChange={e=>setDraft({...draft, nom:e.target.value})} placeholder="Dupont" /></Field>
+          <Field label="Prénom" themeTokens={t}><TextInput themeTokens={t} value={draft.prenom} onChange={e=>setDraft({...draft, prenom:e.target.value})} placeholder="Alex" /></Field>
+          <Field label="Sexe" themeTokens={t}>
+            <Select themeTokens={t} value={draft.sexe} onChange={e=>setDraft({...draft, sexe: e.target.value as "Homme" | "Femme"})}>
               <option value="Homme">Homme</option>
               <option value="Femme">Femme</option>
             </Select>
           </Field>
-          <Field label="1er poste"><Select value={draft.pos1} onChange={e=>setDraft({...draft, pos1: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
-          <Field label="2ème poste"><Select value={draft.pos2} onChange={e=>setDraft({...draft, pos2: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
-          <Field label="3ème poste"><Select value={draft.pos3} onChange={e=>setDraft({...draft, pos3: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
+          <Field label="1er poste" themeTokens={t}><Select themeTokens={t} value={draft.pos1} onChange={e=>setDraft({...draft, pos1: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
+          <Field label="2ème poste" themeTokens={t}><Select themeTokens={t} value={draft.pos2} onChange={e=>setDraft({...draft, pos2: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
+          <Field label="3ème poste" themeTokens={t}><Select themeTokens={t} value={draft.pos3} onChange={e=>setDraft({...draft, pos3: e.target.value as Position})}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</Select></Field>
         </div>
 
         <div style={{ marginTop:12 }}>
-          <Button onClick={()=>{
+          <Button themeTokens={t} onClick={()=>{
             if (!draft.nom || !draft.prenom) return;
             addPlayer(draft);
-            setDraft({ nom:"", prenom:"", licence:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
+            setDraft({ nom:"", prenom:"", sexe:"Homme", pos1:"-", pos2:"-", pos3:"-", note:"" });
           }}>Ajouter le joueur</Button>
         </div>
 
         {/* Liste de joueurs – cartes lisibles */}
         <div style={{ marginTop:18, display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(260px, 1fr))", gap:12 }}>
           {sortedPlayers.map(p => (
-            <div key={p.id} style={{...card, padding:16}}>
+            <div key={p.id} style={{...card(t), padding:16}}>
               <div style={hStack(10)}>
-                <div style={{width:40, height:40, borderRadius:999, background:"#eef2ff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, color:"#3730a3"}}>
+                <div style={{width:40, height:40, borderRadius:999, background:t.avatarBg, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, color:t.avatarText}}>
                   {initials(p.nom, p.prenom)}
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:700}}>{p.prenom} {p.nom}</div>
-                  <div style={{fontSize:12, color:"#64748b"}}>Lic. {p.licence} • {p.sexe}</div>
+                  <div style={{fontWeight:700, color:t.text}}>{p.prenom} {p.nom}</div>
+                  <div style={{fontSize:12, color:t.textMuted}}>{p.sexe}</div>
                 </div>
-                <IconButton onClick={()=>removePlayer(p.id)}>Suppr</IconButton>
+                <IconButton themeTokens={t} onClick={()=>removePlayer(p.id)}>Suppr</IconButton>
               </div>
               <div style={{marginTop:10, display:"flex", gap:6, flexWrap:"wrap"}}>
-                <Tag text={p.pos1} />{p.pos2!=="-" && <Tag text={p.pos2}/>} {p.pos3!=="-" && <Tag text={p.pos3}/>}
+                <Tag themeTokens={t} text={p.pos1} />{p.pos2!=="-" && <Tag themeTokens={t} text={p.pos2}/>} {p.pos3!=="-" && <Tag themeTokens={t} text={p.pos3}/>}
               </div>
             </div>
           ))}
@@ -290,202 +440,20 @@ export default function App() {
       <Section title="Matchs" subtitle="Crée tes rencontres et sélectionne le match courant"
         right={
           <div style={hStack(8)}>
-            <span style={{fontSize:12, color:"#64748b"}}>Match courant</span>
-            <Select value={selectedMatchId} onChange={e=>setSelectedMatchId(e.target.value)} style={{padding:"6px 10px"}}>
+            <span style={{fontSize:12, color:t.textMuted}}>Match courant</span>
+            <Select themeTokens={t} value={selectedMatchId} onChange={e=>setSelectedMatchId(e.target.value)} style={{padding:"6px 10px"}}>
               {matches.map(m => <option key={m.id} value={m.id}>{m.id} • {m.opponent} • {m.date}</option>)}
             </Select>
           </div>
         }
+        themeTokens={t}
       >
         <div style={vStack(12)}>
-          <Field label="Match ID"><TextInput value={draft.id} onChange={e=>setDraft({...draft, id:e.target.value})} placeholder="M3"/></Field>
-          <Field label="Date"><TextInput type="date" value={draft.date} onChange={e=>setDraft({...draft, date:e.target.value})}/></Field>
-          <Field label="Adversaire"><TextInput value={draft.opponent} onChange={e=>setDraft({...draft, opponent:e.target.value})} placeholder="US Rance"/></Field>
-          <Field label="Lieu"><TextInput value={draft.venue} onChange={e=>setDraft({...draft, venue:e.target.value})} placeholder="Domicile / Extérieur"/></Field>
-          <Field label="Commentaires (facultatif)"><TextInput value={draft.comment} onChange={e=>setDraft({...draft, comment:e.target.value})}/></Field>
+          <Field label="Match ID" themeTokens={t}><TextInput themeTokens={t} value={draft.id} onChange={e=>setDraft({...draft, id:e.target.value})} placeholder="M3"/></Field>
+          <Field label="Date" themeTokens={t}><TextInput themeTokens={t} type="date" value={draft.date} onChange={e=>setDraft({...draft, date:e.target.value})}/></Field>
+          <Field label="Adversaire" themeTokens={t}><TextInput themeTokens={t} value={draft.opponent} onChange={e=>setDraft({...draft, opponent:e.target.value})} placeholder="US Rance"/></Field>
+          <Field label="Lieu" themeTokens={t}><TextInput themeTokens={t} value={draft.venue} onChange={e=>setDraft({...draft, venue:e.target.value})} placeholder="Domicile / Extérieur"/></Field>
+          <Field label="Commentaires (facultatif)" themeTokens={t}><TextInput themeTokens={t} value={draft.comment} onChange={e=>setDraft({...draft, comment:e.target.value})}/></Field>
         </div>
 
         <div style={{ marginTop:12, ...hStack(8) }}>
-          <Button onClick={()=>{
-            if (!draft.id) return;
-            addMatch(draft);
-            setDraft({ id:"", date:new Date().toISOString().slice(0,10), opponent:"", venue:"Domicile", comment:"" });
-          }}>Ajouter le match</Button>
-        </div>
-
-        {/* Liste match simple */}
-        <div style={{marginTop:18}}>
-          <table style={{width:"100%", fontSize:14}}>
-            <thead>
-              <tr style={{color:"#475569", textAlign:"left"}}>
-                <th style={{padding:"8px 0"}}>ID</th><th>Date</th><th>Adversaire</th><th>Lieu</th><th>Commentaires</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matches.map(m => (
-                <tr key={m.id} style={{ borderTop:"1px solid #e2e8f0" }}>
-                  <td style={{padding:"10px 0"}}>{m.id}</td><td>{m.date}</td><td>{m.opponent}</td><td>{m.venue}</td><td style={{color:"#64748b"}}>{m.comment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    );
-  };
-
-  /* ================================
-     Onglet PRESENCES
-  ==================================*/
-  const PresencesSection = () => {
-    const match = matches.find(m => m.id === selectedMatchId);
-    return (
-      <Section title="Présences" subtitle="Marque les joueurs présents pour le match sélectionné"
-        right={
-          <div style={hStack(8)}>
-            <span style={{fontSize:12, color:"#64748b"}}>Match</span>
-            <Select value={selectedMatchId} onChange={e=>setSelectedMatchId(e.target.value)} style={{padding:"6px 10px"}}>
-              {matches.map(m => <option key={m.id} value={m.id}>{m.id} • {m.opponent} • {m.date}</option>)}
-            </Select>
-          </div>
-        }
-      >
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-          <div>
-            <div style={{fontWeight:600, marginBottom:8}}>Effectif</div>
-            <div style={vStack(8)}>
-              {players.map(p => {
-                const isPresent = presentPlayerIds.has(p.id);
-                return (
-                  <div key={p.id} style={{...hStack(10), justifyContent:"space-between", border:"1px solid #e2e8f0", borderRadius:12, padding:"10px 12px", background:isPresent?"#ecfdf5":"#fff"}}>
-                    <div style={hStack(8)}>
-                      <div style={{width:28, height:28, borderRadius:999, background:"#e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700}}>
-                        {initials(p.nom, p.prenom)}
-                      </div>
-                      <div style={{fontWeight:500}}>{p.prenom} {p.nom}</div>
-                      <Tag text={p.pos1}/>{p.pos2!=="-" && <Tag text={p.pos2}/>} {p.pos3!=="-" && <Tag text={p.pos3}/>}
-                    </div>
-                    <Button style={{background:isPresent?"#059669":"#4f46e5"}} onClick={()=> setPresence(selectedMatchId!, p.id, !isPresent)}>
-                      {isPresent? "Présent" : "Marquer présent"}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <div style={{fontWeight:600, marginBottom:8}}>Présents ({presentPlayers.length})</div>
-            <div style={vStack(8)}>
-              {presentPlayers.map(p => (
-                <div key={p.id} style={{...hStack(10), justifyContent:"space-between", border:"1px solid #e2e8f0", borderRadius:12, padding:"10px 12px"}}>
-                  <div style={hStack(8)}>
-                    <div style={{width:28, height:28, borderRadius:999, background:"#e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700}}>
-                      {initials(p.nom, p.prenom)}
-                    </div>
-                    <div style={{fontWeight:500}}>{p.prenom} {p.nom}</div>
-                    <Tag text={p.pos1}/>{p.pos2!=="-" && <Tag text={p.pos2}/>} {p.pos3!=="-" && <Tag text={p.pos3}/>}
-                  </div>
-                  <IconButton onClick={()=> setPresence(selectedMatchId!, p.id, false)}>Retirer</IconButton>
-                </div>
-              ))}
-              {presentPlayers.length===0 && <div style={{color:"#64748b"}}>Aucun joueur marqué présent.</div>}
-            </div>
-          </div>
-        </div>
-      </Section>
-    );
-  };
-
-  /* ================================
-     Onglet COMPOS (zones 1→6)
-     (Anti‑doublon simple + répartition)
-  ==================================*/
-  const LineupSection = () => {
-    const lineup = currentLineup!;
-    const setSlot = (zone: 1|2|3|4|5|6, patch: Partial<{playerId: string|undefined; plannedPos: Position|undefined}>) => {
-      updateLineup(l => ({ ...l, slots: l.slots.map(s => s.zone===zone? { ...s, ...patch } : s) }));
-    };
-    const occupied = new Set((lineup.slots ?? []).map(s => s.playerId).filter(Boolean) as string[]);
-
-    const grid: React.CSSProperties = { display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:12 };
-
-    return (
-      <Section title="Composition (Zones 1 → 6)" subtitle="Sélectionne parmi les joueurs présents">
-        <div style={{...hStack(8), marginBottom:10}}>
-          <span style={{fontSize:12, color:"#64748b"}}>Match</span>
-          <Select value={selectedMatchId} onChange={e=>setSelectedMatchId(e.target.value)} style={{padding:"6px 10px"}}>
-            {matches.map(m => <option key={m.id} value={m.id}>{m.id} • {m.opponent} • {m.date}</option>)}
-          </Select>
-          <div style={{marginLeft:"auto", fontSize:12, color:"#64748b"}}>{presentPlayers.length} présent(s)</div>
-        </div>
-
-        <div style={grid}>
-          {lineup.slots.map(slot => (
-            <div key={slot.zone} style={{ border:"1px solid #e2e8f0", borderRadius:16, padding:12 }}>
-              <div style={{...hStack(8), justifyContent:"space-between", marginBottom:8}}>
-                <div style={{fontWeight:700}}>Zone {slot.zone}</div>
-                {slot.playerId && <IconButton onClick={()=> setSlot(slot.zone, { playerId: undefined })}>Vider</IconButton>}
-              </div>
-              <div style={vStack(10)}>
-                <Field label="Joueur (présent)">
-                  <Select value={slot.playerId ?? ""} onChange={e=> setSlot(slot.zone, { playerId: e.target.value || undefined })}>
-                    <option value="">— Choisir —</option>
-                    {presentPlayers.map(p => (
-                      <option key={p.id} value={p.id} disabled={occupied.has(p.id) && slot.playerId !== p.id}>
-                        {p.prenom} {p.nom}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Poste prévu">
-                  <Select value={slot.plannedPos ?? "-"} onChange={e=> setSlot(slot.zone, { plannedPos: e.target.value as Position })}>
-                    {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </Select>
-                </Field>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{...hStack(8), marginTop:12}}>
-          <Button onClick={()=> window.print()}>Imprimer / PDF</Button>
-          <IconButton onClick={()=> {
-            const count = (role: Position) => lineup?.slots.filter(s => s.plannedPos===role).length ?? 0;
-            alert(`Répartition rapide
-2 - Passe : ${count("2 - Passe")}
-3 - Centre : ${count("3 - Centre")}
-4 - Pointu : ${count("4 - Pointu")}`);
-          }}>Vérifier la répartition</IconButton>
-        </div>
-      </Section>
-    );
-  };
-
-  /* ================================
-     Render
-  ==================================*/
-  return (
-    <div style={{ minHeight:"100vh", background:"#f1f5f9", padding:"16px 16px 60px" }}>
-      <div style={{ maxWidth:1100, margin:"0 auto" }}>
-        <header style={{ marginBottom:16 }}>
-          <div style={{ fontSize:24, fontWeight:800 }}>Volley — Coach Board</div>
-          <div style={{ color:"#64748b", marginTop:4, fontSize:14 }}>
-            Inspiré de VolleyMatch : gestion claire des joueurs, présences et compositions (2‑Passe, 3‑Centre, 4‑Pointu).
-          </div>
-        </header>
-
-        <Nav />
-
-        {activeTab === "players"   && <PlayersSection />}
-        {activeTab === "matches"   && <MatchesSection />}
-        {activeTab === "presences" && <PresencesSection />}
-        {activeTab === "lineup"    && <LineupSection />}
-
-        <footer style={{ marginTop:24, textAlign:"center", fontSize:12, color:"#94a3b8" }}>
-          v0.4 — Données stockées localement. Design épuré prêt pour “Tactique” & “Countdown”.
-        </footer>
-      </div>
-    </div>
-  );
-}
