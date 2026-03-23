@@ -1128,7 +1128,7 @@ const LineupSection = () => {
       padding:10,
       minHeight:60,
       display:"flex",
-      flexWrap:"wrap",
+      flexDirection:"column",   // 👈 affichage vertical !
       gap:8
     }}
   >
