@@ -1117,46 +1117,50 @@ const LineupSection = () => {
         </div>
       </div>
 
-      {/* BANC — sélectionner un joueur (tap) */}
-      <div style={{ marginTop:14 }}>
-        <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
+{/* BANC — sélectionner un joueur (tap) */}
+<div style={{ marginTop:14 }}>
+  <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
+  <div
+    style={{
+      border:`1px solid ${ui.colors.border}`,
+      borderRadius:12,
+      padding:10,
+      minHeight:60,
+      display:"flex",
+      flexWrap:"wrap",
+      gap:8
+    }}
+  >
+    {benchPlayers.length === 0 && (
+      <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
+    )}
+
+    {benchPlayers.map(p => {
+      const active = selectedPlayerId === p.id;
+      return (
         <div
+          key={p.id}
+          onClick={() => setSelectedPlayerId(p.id)}
           style={{
-            border:`1px solid ${ui.colors.border}`,
-            borderRadius:12,
-            padding:10,
-            minHeight:60,
-            display:"flex",
-            flexWrap:"wrap",
-            gap:8
+            ...(active ? benchPillActive : benchPill),
+            borderColor: getRoleColor(p),   // 👈 couleur de rôle
           }}
+          title="Sélectionner ce joueur puis taper une position"
         >
-          {benchPlayers.length === 0 && (
-            <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
-          )}
-
-          {benchPlayers.map(p => {
-            const active = selectedPlayerId === p.id;
-            return (
-              <div
-                key={p.id}
-                onClick={() => setSelectedPlayerId(p.id)}
-                style={active ? benchPillActive : benchPill}
-                title="Sélectionner ce joueur puis taper une position"
-              >
-                <div style={avatar}>{initials(p.nom, p.prenom)}</div>
-                <span style={{ fontWeight:600 }}>{p.prenom} {p.nom}</span>
-                <span style={{ display:"inline-flex", gap:6 }}>
-                  <Tag text={p.pos1} />
-                  {p.pos2 && <Tag text={p.pos2} />}
-                  {p.pos3 && <Tag text={p.pos3} />}
-                </span>
-              </div>
-            );
-          })}
+          <div style={avatar}>{initials(p.nom, p.prenom)}</div>
+          <span style={{ fontWeight:600 }}>{p.prenom} {p.nom}</span>
+          <span style={{ display:"inline-flex", gap:6 }}>
+            <Tag text={p.pos1} />
+            {p.pos2 && <Tag text={p.pos2} />}
+            {p.pos3 && <Tag text={p.pos3} />}
+          </span>
         </div>
-      </div>
+      );
+    })}
+  </div>
+</div>
+
 
       {/* Actions */}
       <div style={{ ...hStack(8), marginTop:12, flexWrap:"wrap" }}>
