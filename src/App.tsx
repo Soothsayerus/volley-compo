@@ -1121,23 +1121,17 @@ const LineupSection = () => {
 <div style={{ marginTop:14 }}>
   <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
-const benchPill: React.CSSProperties = {
-  display:"inline-flex",
-  alignItems:"center",
-  gap:6,
-  border:`1px solid ${ui.colors.border}`,
-  background: ui.colors.cardBg,
-  padding:"8px 12px",
-  borderRadius: 999,
-  cursor:"pointer",
-  width:"100%"           // 👈 ligne à pleine largeur (optionnel)
-};
-const benchPillActive: React.CSSProperties = {
-  ...benchPill,
-  outline: `2px solid ${ui.colors.primary}`,
-  boxShadow: "0 0 0 2px rgba(0,0,0,0.05)",
-};
-  >
+<div
+  style={{
+    border:`1px solid ${ui.colors.border}`,
+    borderRadius:12,
+    padding:10,
+    minHeight:60,
+    display:"flex",
+    flexWrap:"wrap",
+    gap:8
+  }}
+>
     {benchPlayers.length === 0 && (
       <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
     )}
