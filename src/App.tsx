@@ -520,7 +520,7 @@ export default function App() {
   };
 
 /* ================================
-   Onglet MATCHS (éditer / supprimer)
+   Onglet MATCHS — avec tri par date
 ==================================*/
 const MatchesSection = () => {
   const [draft, setDraft] = useState<Match>({
@@ -533,6 +533,13 @@ const MatchesSection = () => {
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  /* ========== TRI PAR DATE ========== */
+  const sortedMatches = useMemo(() => {
+    return [...matches].sort((a, b) =>
+      b.date.localeCompare(a.date) // plus récent → plus ancien
+    );
+  }, [matches]);
 
   const resetDraft = () =>
     setDraft({
@@ -557,7 +564,6 @@ const MatchesSection = () => {
 
   const saveMatch = () => {
     if (editingId) {
-      // MODE ÉDITION
       setMatches(prev =>
         prev.map(m =>
           m.id === editingId ? { ...m, ...draft, id: editingId } : m
@@ -568,7 +574,6 @@ const MatchesSection = () => {
       return;
     }
 
-    // AJOUT
     if (!draft.id) return;
 
     if (matches.some(m => m.id === draft.id)) {
@@ -581,14 +586,14 @@ const MatchesSection = () => {
   };
 
   const removeMatch = (id: string) => {
-    if (!confirm("Supprimer ce match ? Les présences et compositions associées seront aussi supprimées.")) return;
+    if (!confirm("Supprimer ce match ? Les données associées seront supprimées.")) return;
 
     setMatches(prev => prev.filter(m => m.id !== id));
     setPresences(prev => prev.filter(p => p.matchId !== id));
     setLineups(prev => prev.filter(l => l.matchId !== id));
 
     if (selectedMatchId === id) {
-      const next = matches.find(m => m.id !== id)?.id;
+      const next = sortedMatches.find(m => m.id !== id)?.id;
       setSelectedMatchId(next);
     }
 
@@ -601,7 +606,7 @@ const MatchesSection = () => {
   return (
     <Section
       title="Matchs"
-      subtitle="Crée, modifie ou supprime des rencontres."
+      subtitle="Crée, modifie ou supprime des rencontres (triées par date)."
       right={
         <div style={hStack(8)}>
           <span style={{ fontSize: 12, color: ui.colors.muted }}>Match courant</span>
@@ -610,7 +615,7 @@ const MatchesSection = () => {
             onChange={(e) => setSelectedMatchId(e.target.value)}
             style={{ padding: "6px 10px" }}
           >
-            {matches.map((m) => (
+            {sortedMatches.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.id} • {m.opponent} • {m.date}
               </option>
@@ -619,7 +624,7 @@ const MatchesSection = () => {
         </div>
       }
     >
-      {/* Formulaire */}
+      {/* FORMULAIRE */}
       <div style={vStack(12)}>
         <Field label="Match ID">
           <TextInput
@@ -642,7 +647,6 @@ const MatchesSection = () => {
           <TextInput
             value={draft.opponent}
             onChange={(e) => setDraft({ ...draft, opponent: e.target.value })}
-            placeholder="US Rance"
           />
         </Field>
 
@@ -650,7 +654,6 @@ const MatchesSection = () => {
           <TextInput
             value={draft.venue}
             onChange={(e) => setDraft({ ...draft, venue: e.target.value })}
-            placeholder="Domicile / Extérieur"
           />
         </Field>
 
@@ -665,34 +668,31 @@ const MatchesSection = () => {
           </Select>
         </Field>
 
-        <Field label="Commentaires (facultatif)">
+        <Field label="Commentaires">
           <TextInput
             value={draft.comment}
             onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
-            placeholder="Notes, remarques…"
           />
         </Field>
       </div>
 
-      {/* Boutons du formulaire */}
+      {/* ACTIONS */}
       <div style={{ marginTop: 12, ...hStack(8) }}>
         <Button onClick={saveMatch}>
           {editingId ? "Enregistrer" : "Ajouter"}
         </Button>
 
         {editingId && (
-          <IconButton onClick={cancelEdit}>
-            Annuler
-          </IconButton>
+          <IconButton onClick={cancelEdit}>Annuler</IconButton>
         )}
       </div>
 
-      {/* Tableau des matchs */}
+      {/* TABLEAU MATCHS */}
       <div style={{ marginTop: 18 }}>
-        <table style={{ width: "100%", fontSize: 14, color: ui.colors.text }}>
+        <table style={{ width: "100%", fontSize: 14 }}>
           <thead>
             <tr style={{ color: ui.colors.muted2, textAlign: "left" }}>
-              <th style={{ padding: "8px 0" }}>ID</th>
+              <th>ID</th>
               <th>Date</th>
               <th>Adversaire</th>
               <th>Lieu</th>
@@ -703,9 +703,9 @@ const MatchesSection = () => {
           </thead>
 
           <tbody>
-            {matches.map((m) => (
+            {sortedMatches.map((m) => (
               <tr key={m.id} style={{ borderTop: `1px solid ${ui.colors.border}` }}>
-                <td style={{ padding: "10px 0" }}>{m.id}</td>
+                <td>{m.id}</td>
                 <td>{m.date}</td>
                 <td>{m.opponent}</td>
                 <td>{m.venue}</td>
@@ -714,36 +714,20 @@ const MatchesSection = () => {
 
                 <td>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <IconButton onClick={() => startEdit(m)}>
-                      Modifier
-                    </IconButton>
-
-                    <IconButton
-                      onClick={() => removeMatch(m.id)}
-                      style={{ color: "#dc2626" }}
-                    >
+                    <IconButton onClick={() => startEdit(m)}>Modifier</IconButton>
+                    <IconButton onClick={() => removeMatch(m.id)} style={{ color: "#dc2626" }}>
                       Supprimer
                     </IconButton>
                   </div>
                 </td>
               </tr>
             ))}
-
-            {matches.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ padding: "10px 0", color: ui.colors.muted }}>
-                  Aucun match enregistré.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
     </Section>
   );
 };
-
-
   /* ================================
      Onglet PRESENCES
   ==================================*/
