@@ -519,88 +519,151 @@ export default function App() {
     );
   };
 
-  /* ================================
-     Onglet MATCHS
-  ==================================*/
-  const MatchesSection = () => {
-    const [draft, setDraft] = useState<Match>({ id: "", date: new Date().toISOString().slice(0, 10), opponent: "", venue: "Domicile", comment: "" });
+/* ================================
+   Onglet MATCHS
+==================================*/
+const MatchesSection = () => {
+  const [draft, setDraft] = useState<Match>({
+    id: "",
+    date: new Date().toISOString().slice(0, 10),
+    opponent: "",
+    venue: "Domicile",
+    comment: "",
+    matchType: "Saison Hiver",
+  });
 
-    return (
-      <Section
-        title="Matchs"
-        subtitle="Crée tes rencontres et sélectionne le match courant"
-        right={
-          <div style={hStack(8)}>
-            <span style={{ fontSize: 12, color: ui.colors.muted }}>Match courant</span>
-            <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
-              {matches.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.id} • {m.opponent} • {m.date}
-                </option>
-              ))}
-            </Select>
-          </div>
-        }
-      >
-        <div style={vStack(12)}>
-          <Field label="Match ID">
-            <TextInput value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="M3" />
-          </Field>
-          <Field label="Date">
-            <TextInput type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
-          </Field>
-          <Field label="Adversaire">
-            <TextInput value={draft.opponent} onChange={(e) => setDraft({ ...draft, opponent: e.target.value })} placeholder="US Rance" />
-          </Field>
-          <Field label="Lieu">
-            <TextInput value={draft.venue} onChange={(e) => setDraft({ ...draft, venue: e.target.value })} placeholder="Domicile / Extérieur" />
-          </Field>
-          <Field label="Commentaires (facultatif)">
-            <TextInput value={draft.comment} onChange={(e) => setDraft({ ...draft, comment: e.target.value })} />
-          </Field>
-        </div>
-
-        <div style={{ marginTop: 12, ...hStack(8) }}>
-          <Button
-            onClick={() => {
-              if (!draft.id) return;
-              addMatch(draft);
-              setDraft({ id: "", date: new Date().toISOString().slice(0, 10), opponent: "", venue: "Domicile", comment: "" });
-            }}
+  return (
+    <Section
+      title="Matchs"
+      subtitle="Crée tes rencontres et sélectionne le match courant"
+      right={
+        <div style={hStack(8)}>
+          <span style={{ fontSize: 12, color: ui.colors.muted }}>Match courant</span>
+          <Select
+            value={selectedMatchId}
+            onChange={(e) => setSelectedMatchId(e.target.value)}
+            style={{ padding: "6px 10px" }}
           >
-            Ajouter le match
-          </Button>
+            {matches.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id} • {m.opponent} • {m.date}
+              </option>
+            ))}
+          </Select>
         </div>
+      }
+    >
+      {/* FORMULAIRE MATCH */}
+      <div style={vStack(12)}>
+        <Field label="Match ID">
+          <TextInput
+            value={draft.id}
+            onChange={(e) => setDraft({ ...draft, id: e.target.value })}
+            placeholder="M3"
+          />
+        </Field>
 
-        {/* Liste match simple */}
-        <div style={{ marginTop: 18 }}>
-          <table style={{ width: "100%", fontSize: 14, color: ui.colors.text }}>
-            <thead>
-              <tr style={{ color: ui.colors.muted2, textAlign: "left" }}>
-                <th style={{ padding: "8px 0" }}>ID</th>
-                <th>Date</th>
-                <th>Adversaire</th>
-                <th>Lieu</th>
-                <th>Commentaires</th>
+        <Field label="Date">
+          <TextInput
+            type="date"
+            value={draft.date}
+            onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+          />
+        </Field>
+
+        <Field label="Adversaire">
+          <TextInput
+            value={draft.opponent}
+            onChange={(e) => setDraft({ ...draft, opponent: e.target.value })}
+            placeholder="US Rance"
+          />
+        </Field>
+
+        <Field label="Lieu">
+          <TextInput
+            value={draft.venue}
+            onChange={(e) => setDraft({ ...draft, venue: e.target.value })}
+            placeholder="Domicile / Extérieur"
+          />
+        </Field>
+
+        {/* Nouveau champ : Type de match */}
+        <Field label="Type de match">
+          <Select
+            value={draft.matchType}
+            onChange={(e) =>
+              setDraft({ ...draft, matchType: e.target.value as any })
+            }
+          >
+            <option value="Saison Hiver">Saison Hiver</option>
+            <option value="Saison Aller/Retour">Saison Aller/Retour</option>
+            <option value="Coupe">Coupe</option>
+          </Select>
+        </Field>
+
+        <Field label="Commentaires (facultatif)">
+          <TextInput
+            value={draft.comment}
+            onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      {/* BOUTON AJOUT */}
+      <div style={{ marginTop: 12, ...hStack(8) }}>
+        <Button
+          onClick={() => {
+            if (!draft.id) return;
+
+            addMatch(draft);
+
+            setDraft({
+              id: "",
+              date: new Date().toISOString().slice(0, 10),
+              opponent: "",
+              venue: "Domicile",
+              comment: "",
+              matchType: "Saison Hiver",
+            });
+          }}
+        >
+          Ajouter le match
+        </Button>
+      </div>
+
+      {/* LISTE MATCHS */}
+      <div style={{ marginTop: 18 }}>
+        <table style={{ width: "100%", fontSize: 14, color: ui.colors.text }}>
+          <thead>
+            <tr style={{ color: ui.colors.muted2, textAlign: "left" }}>
+              <th style={{ padding: "8px 0" }}>ID</th>
+              <th>Date</th>
+              <th>Adversaire</th>
+              <th>Lieu</th>
+              <th>Type</th>
+              <th>Commentaires</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {matches.map((m) => (
+              <tr key={m.id} style={{ borderTop: `1px solid ${ui.colors.border}` }}>
+                <td style={{ padding: "10px 0" }}>{m.id}</td>
+                <td>{m.date}</td>
+                <td>{m.opponent}</td>
+                <td>{m.venue}</td>
+                <td>{m.matchType}</td>
+                <td style={{ color: ui.colors.muted }}>{m.comment}</td>
               </tr>
-            </thead>
-            <tbody>
-              {matches.map((m) => (
-                <tr key={m.id} style={{ borderTop: `1px solid ${ui.colors.border}` }}>
-                  <td style={{ padding: "10px 0" }}>{m.id}</td>
-                  <td>{m.date}</td>
-                  <td>{m.opponent}</td>
-                  <td>{m.venue}</td>
-                  <td style={{ color: ui.colors.muted }}>{m.comment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    );
-  };
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+};
 
+   
   /* ================================
      Onglet PRESENCES
   ==================================*/
@@ -802,7 +865,7 @@ export default function App() {
           <header style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Composition</div>
             <div style={{ color: ui.colors.muted, marginTop: 4, fontSize: 14 }}>
-              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données dans stockées en local.)
+              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données stockées en local.)
             </div>
           </header>
 
