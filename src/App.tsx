@@ -1074,7 +1074,7 @@ const LineupSection = () => {
 
 
               <IconButton onClick={(e) => { e.stopPropagation(); clearZone(zone); }}>
-                Vider
+                Suppr
               </IconButton>
             </>
           ) : (
