@@ -1121,17 +1121,17 @@ const LineupSection = () => {
 <div style={{ marginTop:14 }}>
   <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
-<div
-  style={{
-    border:`1px solid ${ui.colors.border}`,
-    borderRadius:12,
-    padding:10,
-    minHeight:60,
-    display:"flex",
-    flexWrap:"wrap",
-    gap:8
-  }}
->
+  <div
+    style={{
+      border:`1px solid ${ui.colors.border}`,
+      borderRadius:12,
+      padding:10,
+      minHeight:60,
+      display:"flex",
+      flexWrap:"wrap",
+      gap:8
+    }}
+  >
     {benchPlayers.length === 0 && (
       <div style={{ color:ui.colors.muted }}>Aucun joueur disponible</div>
     )}
