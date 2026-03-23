@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState, useContext } from "react";
 /* ================================
    Types & constantes (MAJ sans licence)
 ==================================*/
-type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu" | "-";
+type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu";
 
 type Player = {
   id: string;
@@ -35,7 +35,7 @@ type Lineup = {
   slots: { zone: 1 | 2 | 3 | 4 | 5 | 6; playerId?: string; plannedPos?: Position }[];
 };
 
-const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu", "-"];
+const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu"];
 
 const LS_KEYS = {
   players: "volley.players.v1",
@@ -411,7 +411,7 @@ export default function App() {
      Onglet JOUEURS (MAJ : suppression licence)
   ==================================*/
   const PlayersSection = () => {
-    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
+    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: undefined, pos3: undefined, note: "" });
 
     return (
       <Section
@@ -451,22 +451,28 @@ export default function App() {
             </Select>
           </Field>
           <Field label="2ème poste">
-            <Select value={draft.pos2} onChange={(e) => setDraft({ ...draft, pos2: e.target.value as Position })}>
-              {POSITIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
+
+    setDraft({ ...draft, pos2: (e.target.value as Position) || undefined })
+  }
+>
+  <option value=""></option> 
+  {POSITIONS.map((p) => (
+    <option key={p} value={p}>{p}</option>
+  ))}
+</Select>
+
           </Field>
           <Field label="3ème poste">
-            <Select value={draft.pos3} onChange={(e) => setDraft({ ...draft, pos3: e.target.value as Position })}>
-              {POSITIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
+
+    setDraft({ ...draft, pos3: (e.target.value as Position) || undefined })
+  }
+>
+  <option value=""></option> 
+  {POSITIONS.map((p) => (
+    <option key={p} value={p}>{p}</option>
+  ))}
+</Select>
+
           </Field>
         </div>
 
@@ -510,7 +516,7 @@ export default function App() {
               </div>
               <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <Tag text={p.pos1} />
-                {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
+                {p.pos2 && <Tag text={p.pos2} />} {p.pos3 && <Tag text={p.pos3} />}
               </div>
             </div>
           ))}
@@ -659,7 +665,7 @@ export default function App() {
                       </div>
                       <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
                       <Tag text={p.pos1} />
-                      {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
+                      {p.pos2 && <Tag text={p.pos2} />} {p.pos3 && <Tag text={p.pos3} />}
                     </div>
                     <Button style={{ background: isPresent ? ui.colors.success : ui.colors.primary }} onClick={() => setPresence(selectedMatchId!, p.id, !isPresent)}>
                       {isPresent ? "Présent" : "Marquer présent"}
@@ -703,7 +709,7 @@ export default function App() {
                     </div>
                     <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
                     <Tag text={p.pos1} />
-                    {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
+                    {p.pos2 && <Tag text={p.pos2} />} {p.pos3 && <Tag text={p.pos3} />}
                   </div>
                   <IconButton onClick={() => setPresence(selectedMatchId!, p.id, false)}>Retirer</IconButton>
                 </div>
