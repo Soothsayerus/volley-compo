@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useState, useContext } from "react";
 
 /* ================================
-   Types & constantes
-   (pos2/pos3 optionnels, plus de "-")
+   Types & constantes (MAJ sans licence)
 ==================================*/
-
-type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu";
+type Position = "2 - Passe" | "3 - Centre" | "4 - Pointu" | "-";
 
 type Player = {
   id: string;
@@ -13,8 +11,8 @@ type Player = {
   prenom: string;
   sexe: "Homme" | "Femme";
   pos1: Position;
-  pos2?: Position;
-  pos3?: Position;
+  pos2: Position;
+  pos3: Position;
   note?: string;
 };
 
@@ -34,18 +32,10 @@ type Presence = {
 
 type Lineup = {
   matchId: string;
-  slots: { 
-    zone: 1 | 2 | 3 | 4 | 5 | 6; 
-    playerId?: string; 
-    plannedPos?: Position 
-  }[];
+  slots: { zone: 1 | 2 | 3 | 4 | 5 | 6; playerId?: string; plannedPos?: Position }[];
 };
 
-const POSITIONS: Position[] = [
-  "2 - Passe",
-  "3 - Centre",
-  "4 - Pointu"
-];
+const POSITIONS: Position[] = ["2 - Passe", "3 - Centre", "4 - Pointu", "-"];
 
 const LS_KEYS = {
   players: "volley.players.v1",
@@ -66,7 +56,6 @@ function loadLS<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
-
 function saveLS<T>(key: string, data: T) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -74,9 +63,9 @@ function saveLS<T>(key: string, data: T) {
 }
 
 /* ================================
-   Thème (clair / sombre)
+   Thème (clair/sombre)
+   — palette & styles centralisés
 ==================================*/
-
 type Theme = "light" | "dark";
 
 type Palette = {
@@ -107,42 +96,42 @@ type Palette = {
 function makePalette(theme: Theme): Palette {
   if (theme === "dark") {
     return {
-      pageBg: "#0f172a",
-      text: "#e2e8f0",
-      muted: "#94a3b8",
-      muted2: "#a1a1aa",
+      pageBg: "#0f172a", // slate-900
+      text: "#e2e8f0", // slate-200
+      muted: "#94a3b8", // slate-400
+      muted2: "#a1a1aa", // zinc-400
 
-      cardBg: "#111827",
-      border: "#334155",
-      inputBorder: "#475569",
+      cardBg: "#111827", // gray-900
+      border: "#334155", // slate-700
+      inputBorder: "#475569", // slate-600
 
-      primary: "#6366f1",
+      primary: "#6366f1", // indigo-500
       primaryText: "#ffffff",
 
       ghostBg: "#0b1220",
       ghostText: "#e2e8f0",
 
-      tagBg: "#1f2937",
+      tagBg: "#1f2937", // gray-800
 
-      avatarBg: "#1f2937",
-      avatarText: "#c7d2fe",
+      avatarBg: "#1f2937", // gray-800
+      avatarText: "#c7d2fe", // indigo-200
 
       presentBg: "#0b3d2e",
-      success: "#10b981",
+      success: "#10b981", // emerald-500
     };
   }
-
+  // light
   return {
-    pageBg: "#f1f5f9",
-    text: "#0f172a",
-    muted: "#64748b",
-    muted2: "#475569",
+    pageBg: "#f1f5f9", // slate-100
+    text: "#0f172a", // slate-900
+    muted: "#64748b", // slate-500
+    muted2: "#475569", // slate-600
 
     cardBg: "#ffffff",
     border: "#e2e8f0",
     inputBorder: "#e5e7eb",
 
-    primary: "#4f46e5",
+    primary: "#4f46e5", // indigo-600
     primaryText: "#ffffff",
 
     ghostBg: "#f8fafc",
@@ -154,13 +143,9 @@ function makePalette(theme: Theme): Palette {
     avatarText: "#3730a3",
 
     presentBg: "#ecfdf5",
-    success: "#059669",
+    success: "#059669", // emerald-600
   };
 }
-
-/* ================================
-   Styles UI
-==================================*/
 
 type UIStyles = {
   colors: Palette;
@@ -172,19 +157,8 @@ type UIStyles = {
   tag: React.CSSProperties;
 };
 
-const hStack = (gap = 8): React.CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  gap,
-});
-
-const vStack = (gap = 12): React.CSSProperties => ({
-  display: "flex",
-  flexDirection: "column",
-  gap,
-});
-
-/* Construction du thème UI */
+const hStack = (gap = 8): React.CSSProperties => ({ display: "flex", alignItems: "center", gap });
+const vStack = (gap = 12): React.CSSProperties => ({ display: "flex", flexDirection: "column", gap });
 
 function makeUI(theme: Theme): UIStyles {
   const c = makePalette(theme);
@@ -193,10 +167,7 @@ function makeUI(theme: Theme): UIStyles {
     card: {
       background: c.cardBg,
       borderRadius: 16,
-      boxShadow:
-        theme === "light"
-          ? "0 6px 18px rgba(0,0,0,0.06)"
-          : "0 6px 18px rgba(0,0,0,0.35)",
+      boxShadow: theme === "light" ? "0 6px 18px rgba(0,0,0,0.06)" : "0 6px 18px rgba(0,0,0,0.35)",
       padding: 20,
       border: `1px solid ${c.border}`,
       color: c.text,
@@ -238,38 +209,22 @@ function makeUI(theme: Theme): UIStyles {
 }
 
 /* ================================
-   Contexte UI
+   Contexte UI (pour accéder aux styles)
 ==================================*/
-
 const UIContext = React.createContext<UIStyles>(makeUI("light"));
 const useUI = () => useContext(UIContext);
 
 /* ================================
-   Petits composants UI
+   Petits composants UI (sans Tailwind)
 ==================================*/
-
-const Section: React.FC<{
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-}> = ({ title, subtitle, right, children }) => {
+const Section: React.FC<{ title: string; subtitle?: string; right?: React.ReactNode }> = ({ title, subtitle, right, children }) => {
   const ui = useUI();
   return (
     <div style={ui.card}>
-      <div
-        style={{
-          ...hStack(12),
-          justifyContent: "space-between",
-          marginBottom: 12,
-        }}
-      >
+      <div style={{ ...hStack(12), justifyContent: "space-between", marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{title}</div>
-          {subtitle && (
-            <div style={{ fontSize: 13, color: ui.colors.muted, marginTop: 4 }}>
-              {subtitle}
-            </div>
-          )}
+          {subtitle && <div style={{ fontSize: 13, color: ui.colors.muted, marginTop: 4 }}>{subtitle}</div>}
         </div>
         {right}
       </div>
@@ -288,23 +243,17 @@ const Field: React.FC<{ label: string }> = ({ label, children }) => {
   );
 };
 
-const TextInput: React.FC<
-  React.InputHTMLAttributes<HTMLInputElement>
-> = (props) => {
+const TextInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
   const ui = useUI();
   return <input {...props} style={{ ...ui.inputStyle, ...(props.style || {}) }} />;
 };
 
-const Select: React.FC<
-  React.SelectHTMLAttributes<HTMLSelectElement>
-> = (props) => {
+const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => {
   const ui = useUI();
   return <select {...props} style={{ ...ui.inputStyle, ...(props.style || {}) }} />;
 };
 
-const Button: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement>
-> = ({ children, style, ...props }) => {
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, style, ...props }) => {
   const ui = useUI();
   return (
     <button {...props} style={{ ...ui.buttonStyle, ...(style || {}) }}>
@@ -313,9 +262,7 @@ const Button: React.FC<
   );
 };
 
-const IconButton: React.FC<
-  React.ButtonHTMLAttributes<HTMLButtonElement>
-> = ({ children, style, ...props }) => {
+const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, style, ...props }) => {
   const ui = useUI();
   return (
     <button {...props} style={{ ...ui.ghostButton, ...(style || {}) }}>
@@ -330,187 +277,104 @@ const Tag: React.FC<{ text: string }> = ({ text }) => {
 };
 
 function initials(nom: string, prenom: string) {
-  return `${(prenom || "?").trim().charAt(0) || "?"}${(nom || "?")
-    .trim()
-    .charAt(0) || "?"}`.toUpperCase();
+  return `${(prenom || "?").trim().charAt(0) || "?"}${(nom || "?").trim().charAt(0) || "?"}`.toUpperCase();
 }
 
 /* ================================
-   App Component (début)
+   App
 ==================================*/
-
 export default function App() {
-  const [players, setPlayers] = useState<Player[]>(() =>
-    loadLS(LS_KEYS.players, [])
-  );
-  const [matches, setMatches] = useState<Match[]>(() =>
-    loadLS(LS_KEYS.matches, [])
-  );
-  const [presences, setPresences] = useState<Presence[]>(() =>
-    loadLS(LS_KEYS.presences, [])
-  );
-  const [lineups, setLineups] = useState<Lineup[]>(() =>
-    loadLS(LS_KEYS.lineups, [])
-  );
+  const [players, setPlayers] = useState<Player[]>(() => loadLS(LS_KEYS.players, []));
+  const [matches, setMatches] = useState<Match[]>(() => loadLS(LS_KEYS.matches, []));
+  const [presences, setPresences] = useState<Presence[]>(() => loadLS(LS_KEYS.presences, []));
+  const [lineups, setLineups] = useState<Lineup[]>(() => loadLS(LS_KEYS.lineups, []));
 
-  const [activeTab, setActiveTab] = useState<
-    "players" | "matches" | "presences" | "lineup"
-  >("players");
-
-  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(
-    () => matches[0]?.id
-  );
-
+  const [activeTab, setActiveTab] = useState<"players" | "matches" | "presences" | "lineup">("players");
+  const [selectedMatchId, setSelectedMatchId] = useState<string | undefined>(() => matches[0]?.id);
   const [sortBy, setSortBy] = useState<"nom" | "pos1">("nom");
 
-  /* ================================
-      Thème clair/sombre
-  =================================*/
-
+  // Thème
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = loadLS<Theme | null>(LS_KEYS.theme, null);
-    if (saved === "light" || saved === "dark") return saved;
+    if (saved === "dark" || saved === "light") return saved;
+    // fallback : clair
     return "light";
   });
-
   const ui = useMemo(() => makeUI(theme), [theme]);
 
-  const toggleTheme = () =>
-    setTheme((t) => (t === "light" ? "dark" : "light"));
+  const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   useEffect(() => saveLS(LS_KEYS.theme, theme), [theme]);
 
-  /* ================================
-      Persistance LocalStorage
-  =================================*/
-
+  // Persistance
   useEffect(() => saveLS(LS_KEYS.players, players), [players]);
   useEffect(() => saveLS(LS_KEYS.matches, matches), [matches]);
   useEffect(() => saveLS(LS_KEYS.presences, presences), [presences]);
   useEffect(() => saveLS(LS_KEYS.lineups, lineups), [lineups]);
 
-  /* ================================
-      Données par défaut (joueurs)
-  =================================*/
+  // Données exemples minimales (pour démarrer)
   useEffect(() => {
     if (players.length === 0) {
       setPlayers([
-        {
-          id: crypto.randomUUID(),
-          nom: "Dupont",
-          prenom: "Alex",
-          sexe: "Homme",
-          pos1: "2 - Passe",
-          pos2: undefined,
-          pos3: undefined,
-          note: "Capitaine",
-        },
-        {
-          id: crypto.randomUUID(),
-          nom: "Martin",
-          prenom: "Zoé",
-          sexe: "Femme",
-          pos1: "3 - Centre",
-          pos2: "4 - Pointu",
-          pos3: undefined,
-          note: "",
-        },
+        { id: crypto.randomUUID(), nom: "Dupont", prenom: "Alex", sexe: "Homme", pos1: "2 - Passe", pos2: "3 - Centre", pos3: "-", note: "Capitaine" },
+        { id: crypto.randomUUID(), nom: "Martin", prenom: "Zoé", sexe: "Femme", pos1: "3 - Centre", pos2: "4 - Pointu", pos3: "-", note: "" },
       ]);
     }
   }, []);
 
-  /* ================================
-      Données par défaut (match)
-  =================================*/
   useEffect(() => {
     if (matches.length === 0) {
-      const m1: Match = {
-        id: "M1",
-        date: new Date().toISOString().slice(0, 10),
-        opponent: "US Rance",
-        venue: "Domicile",
-        comment: "Saison régulière",
-      };
+      const m1: Match = { id: "M1", date: new Date().toISOString().slice(0, 10), opponent: "US Rance", venue: "Domicile", comment: "Saison régulière" };
       setMatches([m1]);
       setSelectedMatchId(m1.id);
     }
   }, []);
 
-  /* ================================
-      Présences dérivées
-  =================================*/
+  // Dérivés présences & lineup
   const presentPlayerIds = useMemo(() => {
     if (!selectedMatchId) return new Set<string>();
-    return new Set(
-      presences
-        .filter((p) => p.matchId === selectedMatchId && p.present)
-        .map((p) => p.playerId)
-    );
+    return new Set(presences.filter((p) => p.matchId === selectedMatchId && p.present).map((p) => p.playerId));
   }, [presences, selectedMatchId]);
 
   const presentPlayers = useMemo(() => {
     const list = players.filter((p) => presentPlayerIds.has(p.id));
     return sortBy === "nom"
-      ? [...list].sort((a, b) =>
-          (a.nom + a.prenom).localeCompare(b.nom + b.prenom)
-        )
+      ? [...list].sort((a, b) => (a.nom + a.prenom).localeCompare(b.nom + b.prenom))
       : [...list].sort((a, b) => (a.pos1 || "").localeCompare(b.pos1 || ""));
   }, [players, presentPlayerIds, sortBy]);
 
   const sortedPlayers = useMemo(() => {
     return sortBy === "nom"
-      ? [...players].sort((a, b) =>
-          (a.nom + a.prenom).localeCompare(b.nom + b.prenom)
-        )
+      ? [...players].sort((a, b) => (a.nom + a.prenom).localeCompare(b.nom + b.prenom))
       : [...players].sort((a, b) => (a.pos1 || "").localeCompare(b.pos1 || ""));
   }, [players, sortBy]);
 
-  /* ================================
-      Lineup dérivé
-  =================================*/
   const currentLineup = useMemo<Lineup | undefined>(() => {
     if (!selectedMatchId) return undefined;
     let l = lineups.find((l) => l.matchId === selectedMatchId);
     if (!l) {
-      l = {
-        matchId: selectedMatchId,
-        slots: [1, 2, 3, 4, 5, 6].map((z) => ({
-          zone: z as 1 | 2 | 3 | 4 | 5 | 6,
-        })),
-      };
+      l = { matchId: selectedMatchId, slots: [1, 2, 3, 4, 5, 6].map((z) => ({ zone: z as 1 | 2 | 3 | 4 | 5 | 6 })) };
       setLineups((prev) => [...prev, l!]);
     }
     return l;
   }, [lineups, selectedMatchId]);
 
-/* ================================
-      CRUD Utilities
-  =================================*/
+  const updateLineup = (updater: (l: Lineup) => Lineup) => {
+    if (!currentLineup) return;
+    setLineups((prev) => prev.map((l) => (l.matchId === currentLineup.matchId ? updater(l) : l)));
+  };
 
-  const addPlayer = (p: Omit<Player, "id">) =>
-    setPlayers((prev) => [...prev, { ...p, id: crypto.randomUUID() }]);
-
+  // CRUD
+  const addPlayer = (p: Omit<Player, "id">) => setPlayers((prev) => [...prev, { ...p, id: crypto.randomUUID() }]);
   const removePlayer = (id: string) => {
     setPlayers((prev) => prev.filter((p) => p.id !== id));
     setPresences((prev) => prev.filter((pr) => pr.playerId !== id));
-    setLineups((prev) =>
-      prev.map((l) => ({
-        ...l,
-        slots: l.slots.map((s) =>
-          s.playerId === id ? { ...s, playerId: undefined } : s
-        ),
-      }))
-    );
+    setLineups((prev) => prev.map((l) => ({ ...l, slots: l.slots.map((s) => (s.playerId === id ? { ...s, playerId: undefined } : s)) })));
   };
-
-  const addMatch = (m: Match) =>
-    setMatches((prev) => [...prev, m]);
-
+  const addMatch = (m: Match) => setMatches((prev) => [...prev, m]);
   const setPresence = (matchId: string, playerId: string, present: boolean) => {
     setPresences((prev) => {
-      const idx = prev.findIndex(
-        (p) => p.matchId === matchId && p.playerId === playerId
-      );
+      const idx = prev.findIndex((p) => p.matchId === matchId && p.playerId === playerId);
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = { ...copy[idx], present };
@@ -521,9 +385,8 @@ export default function App() {
   };
 
   /* ================================
-      Navigation
-  =================================*/
-
+     Navigation
+  ==================================*/
   const Nav = () => (
     <div style={{ ...hStack(8), marginBottom: 16 }}>
       {[
@@ -532,22 +395,12 @@ export default function App() {
         { id: "presences", label: "Présences" },
         { id: "lineup", label: "Compos" },
       ].map((t) => (
-        <button
-          key={t.id}
-          onClick={() => setActiveTab(t.id as any)}
-          style={{
-            ...(activeTab === t.id ? ui.buttonStyle : ui.ghostButton),
-          }}
-        >
+        <button key={t.id} onClick={() => setActiveTab(t.id as any)} style={{ ...(activeTab === t.id ? ui.buttonStyle : ui.ghostButton) }}>
           {t.label}
         </button>
       ))}
-
-      <div style={{ marginLeft: "auto" }}>
-        <IconButton
-          onClick={toggleTheme}
-          title={theme === "light" ? "Passer en mode sombre" : "Passer en mode clair"}
-        >
+      <div style={{ marginLeft: "auto", ...hStack(8) }}>
+        <IconButton onClick={toggleTheme} title={theme === "light" ? "Passer en mode sombre" : "Passer en mode clair"}>
           {theme === "light" ? "🌙 Mode sombre" : "☀️ Mode clair"}
         </IconButton>
       </div>
@@ -555,19 +408,10 @@ export default function App() {
   );
 
   /* ================================
-      PLAYERS SECTION
-  =================================*/
-
+     Onglet JOUEURS (MAJ : suppression licence)
+  ==================================*/
   const PlayersSection = () => {
-    const [draft, setDraft] = useState<Omit<Player, "id">>({
-      nom: "",
-      prenom: "",
-      sexe: "Homme",
-      pos1: "2 - Passe",      // obligatoire
-      pos2: undefined,        // facultatif
-      pos3: undefined,        // facultatif
-      note: "",
-    });
+    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
 
     return (
       <Section
@@ -576,55 +420,29 @@ export default function App() {
         right={
           <div style={hStack(8)}>
             <span style={{ fontSize: 12, color: ui.colors.muted }}>Trier par</span>
-            <Select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              style={{ padding: "6px 10px" }}
-            >
+            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} style={{ padding: "6px 10px" }}>
               <option value="nom">Nom</option>
               <option value="pos1">Position N°1</option>
             </Select>
           </div>
         }
       >
-        {/* FORMULAIRE JOUEUR */}
+        {/* Champs empilés */}
         <div style={vStack(12)}>
           <Field label="Nom">
-            <TextInput
-              value={draft.nom}
-              onChange={(e) => setDraft({ ...draft, nom: e.target.value })}
-              placeholder="Dupont"
-            />
+            <TextInput value={draft.nom} onChange={(e) => setDraft({ ...draft, nom: e.target.value })} placeholder="Dupont" />
           </Field>
-
           <Field label="Prénom">
-            <TextInput
-              value={draft.prenom}
-              onChange={(e) => setDraft({ ...draft, prenom: e.target.value })}
-              placeholder="Alex"
-            />
+            <TextInput value={draft.prenom} onChange={(e) => setDraft({ ...draft, prenom: e.target.value })} placeholder="Alex" />
           </Field>
-
           <Field label="Sexe">
-            <Select
-              value={draft.sexe}
-              onChange={(e) =>
-                setDraft({ ...draft, sexe: e.target.value as "Homme" | "Femme" })
-              }
-            >
+            <Select value={draft.sexe} onChange={(e) => setDraft({ ...draft, sexe: e.target.value as "Homme" | "Femme" })}>
               <option value="Homme">Homme</option>
               <option value="Femme">Femme</option>
             </Select>
           </Field>
-
-          {/* 1er poste — obligatoire */}
           <Field label="1er poste">
-            <Select
-              value={draft.pos1}
-              onChange={(e) =>
-                setDraft({ ...draft, pos1: e.target.value as Position })
-              }
-            >
+            <Select value={draft.pos1} onChange={(e) => setDraft({ ...draft, pos1: e.target.value as Position })}>
               {POSITIONS.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -632,39 +450,21 @@ export default function App() {
               ))}
             </Select>
           </Field>
-
-          {/* 2e poste — option vide possible */}
           <Field label="2ème poste">
-            <Select
-              value={draft.pos2 ?? ""}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  pos2: (e.target.value as Position) || undefined,
-                })
-              }
-            >
-              <option value=""></option>
+            <Select value={draft.pos2} onChange={(e) => setDraft({ ...draft, pos2: e.target.value as Position })}>
               {POSITIONS.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </Select>
           </Field>
-
-          {/* 3e poste — option vide possible */}
           <Field label="3ème poste">
-            <Select
-              value={draft.pos3 ?? ""}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  pos3: (e.target.value as Position) || undefined,
-                })
-              }
-            >
-              <option value=""></option>
+            <Select value={draft.pos3} onChange={(e) => setDraft({ ...draft, pos3: e.target.value as Position })}>
               {POSITIONS.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </Select>
           </Field>
@@ -675,30 +475,15 @@ export default function App() {
             onClick={() => {
               if (!draft.nom || !draft.prenom) return;
               addPlayer(draft);
-              setDraft({
-                nom: "",
-                prenom: "",
-                sexe: "Homme",
-                pos1: "2 - Passe",
-                pos2: undefined,
-                pos3: undefined,
-                note: "",
-              });
+              setDraft({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
             }}
           >
             Ajouter le joueur
           </Button>
         </div>
 
-        {/* LISTE DES JOUEURS */}
-        <div
-          style={{
-            marginTop: 18,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: 12,
-          }}
-        >
+        {/* Liste de joueurs – cartes lisibles */}
+        <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
           {sortedPlayers.map((p) => (
             <div key={p.id} style={{ ...ui.card, padding: 16 }}>
               <div style={hStack(10)}>
@@ -717,23 +502,15 @@ export default function App() {
                 >
                   {initials(p.nom, p.prenom)}
                 </div>
-
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700 }}>
-                    {p.prenom} {p.nom}
-                  </div>
-                  <div style={{ fontSize: 12, color: ui.colors.muted }}>
-                    {p.sexe}
-                  </div>
+                  <div style={{ fontWeight: 700 }}>{p.prenom} {p.nom}</div>
+                  <div style={{ fontSize: 12, color: ui.colors.muted }}>{p.sexe}</div>
                 </div>
-
                 <IconButton onClick={() => removePlayer(p.id)}>Suppr</IconButton>
               </div>
-
               <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <Tag text={p.pos1} />
-                {p.pos2 && <Tag text={p.pos2} />}
-                {p.pos3 && <Tag text={p.pos3} />}
+                {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
               </div>
             </div>
           ))}
@@ -743,17 +520,10 @@ export default function App() {
   };
 
   /* ================================
-      MATCHES SECTION
-  =================================*/
-
+     Onglet MATCHS
+  ==================================*/
   const MatchesSection = () => {
-    const [draft, setDraft] = useState<Match>({
-      id: "",
-      date: new Date().toISOString().slice(0, 10),
-      opponent: "",
-      venue: "Domicile",
-      comment: "",
-    });
+    const [draft, setDraft] = useState<Match>({ id: "", date: new Date().toISOString().slice(0, 10), opponent: "", venue: "Domicile", comment: "" });
 
     return (
       <Section
@@ -762,11 +532,7 @@ export default function App() {
         right={
           <div style={hStack(8)}>
             <span style={{ fontSize: 12, color: ui.colors.muted }}>Match courant</span>
-            <Select
-              value={selectedMatchId}
-              onChange={(e) => setSelectedMatchId(e.target.value)}
-              style={{ padding: "6px 10px" }}
-            >
+            <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
               {matches.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.id} • {m.opponent} • {m.date}
@@ -776,68 +542,37 @@ export default function App() {
           </div>
         }
       >
-        {/* FORMULAIRE MATCH */}
         <div style={vStack(12)}>
           <Field label="Match ID">
-            <TextInput
-              value={draft.id}
-              onChange={(e) => setDraft({ ...draft, id: e.target.value })}
-              placeholder="M3"
-            />
+            <TextInput value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} placeholder="M3" />
           </Field>
-
           <Field label="Date">
-            <TextInput
-              type="date"
-              value={draft.date}
-              onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-            />
+            <TextInput type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
           </Field>
-
           <Field label="Adversaire">
-            <TextInput
-              value={draft.opponent}
-              onChange={(e) => setDraft({ ...draft, opponent: e.target.value })}
-              placeholder="US Rance"
-            />
+            <TextInput value={draft.opponent} onChange={(e) => setDraft({ ...draft, opponent: e.target.value })} placeholder="US Rance" />
           </Field>
-
           <Field label="Lieu">
-            <TextInput
-              value={draft.venue}
-              onChange={(e) => setDraft({ ...draft, venue: e.target.value })}
-              placeholder="Domicile / Extérieur"
-            />
+            <TextInput value={draft.venue} onChange={(e) => setDraft({ ...draft, venue: e.target.value })} placeholder="Domicile / Extérieur" />
           </Field>
-
           <Field label="Commentaires (facultatif)">
-            <TextInput
-              value={draft.comment}
-              onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
-            />
+            <TextInput value={draft.comment} onChange={(e) => setDraft({ ...draft, comment: e.target.value })} />
           </Field>
         </div>
 
-        {/* BOUTON AJOUT */}
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, ...hStack(8) }}>
           <Button
             onClick={() => {
               if (!draft.id) return;
               addMatch(draft);
-              setDraft({
-                id: "",
-                date: new Date().toISOString().slice(0, 10),
-                opponent: "",
-                venue: "Domicile",
-                comment: "",
-              });
+              setDraft({ id: "", date: new Date().toISOString().slice(0, 10), opponent: "", venue: "Domicile", comment: "" });
             }}
           >
             Ajouter le match
           </Button>
         </div>
 
-        {/* LISTE MATCHS */}
+        {/* Liste match simple */}
         <div style={{ marginTop: 18 }}>
           <table style={{ width: "100%", fontSize: 14, color: ui.colors.text }}>
             <thead>
@@ -849,7 +584,6 @@ export default function App() {
                 <th>Commentaires</th>
               </tr>
             </thead>
-
             <tbody>
               {matches.map((m) => (
                 <tr key={m.id} style={{ borderTop: `1px solid ${ui.colors.border}` }}>
@@ -867,10 +601,9 @@ export default function App() {
     );
   };
 
-/* ================================
-      PRESENCES SECTION
-  =================================*/
-
+  /* ================================
+     Onglet PRESENCES
+  ==================================*/
   const PresencesSection = () => {
     return (
       <Section
@@ -879,11 +612,7 @@ export default function App() {
         right={
           <div style={hStack(8)}>
             <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
-            <Select
-              value={selectedMatchId}
-              onChange={(e) => setSelectedMatchId(e.target.value)}
-              style={{ padding: "6px 10px" }}
-            >
+            <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
               {matches.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.id} • {m.opponent} • {m.date}
@@ -893,17 +622,9 @@ export default function App() {
           </div>
         }
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-          }}
-        >
-          {/* ======= LISTE EFFECTIF ======= */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>Effectif</div>
-
             <div style={vStack(8)}>
               {players.map((p) => {
                 const isPresent = presentPlayerIds.has(p.id);
@@ -936,26 +657,11 @@ export default function App() {
                       >
                         {initials(p.nom, p.prenom)}
                       </div>
-
-                      <div style={{ fontWeight: 500 }}>
-                        {p.prenom} {p.nom}
-                      </div>
-
+                      <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
                       <Tag text={p.pos1} />
-                      {p.pos2 && <Tag text={p.pos2} />}
-                      {p.pos3 && <Tag text={p.pos3} />}
+                      {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
                     </div>
-
-                    <Button
-                      style={{
-                        background: isPresent
-                          ? ui.colors.success
-                          : ui.colors.primary,
-                      }}
-                      onClick={() =>
-                        setPresence(selectedMatchId!, p.id, !isPresent)
-                      }
-                    >
+                    <Button style={{ background: isPresent ? ui.colors.success : ui.colors.primary }} onClick={() => setPresence(selectedMatchId!, p.id, !isPresent)}>
                       {isPresent ? "Présent" : "Marquer présent"}
                     </Button>
                   </div>
@@ -964,12 +670,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* ======= LISTE PRESENTS ======= */}
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>
-              Présents ({presentPlayers.length})
-            </div>
-
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Présents ({presentPlayers.length})</div>
             <div style={vStack(8)}>
               {presentPlayers.map((p) => (
                 <div
@@ -999,29 +701,14 @@ export default function App() {
                     >
                       {initials(p.nom, p.prenom)}
                     </div>
-
-                    <div style={{ fontWeight: 500 }}>
-                      {p.prenom} {p.nom}
-                    </div>
-
+                    <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
                     <Tag text={p.pos1} />
-                    {p.pos2 && <Tag text={p.pos2} />}
-                    {p.pos3 && <Tag text={p.pos3} />}
+                    {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
                   </div>
-
-                  <IconButton
-                    onClick={() => setPresence(selectedMatchId!, p.id, false)}
-                  >
-                    Retirer
-                  </IconButton>
+                  <IconButton onClick={() => setPresence(selectedMatchId!, p.id, false)}>Retirer</IconButton>
                 </div>
               ))}
-
-              {presentPlayers.length === 0 && (
-                <div style={{ color: ui.colors.muted }}>
-                  Aucun joueur marqué présent.
-                </div>
-              )}
+              {presentPlayers.length === 0 && <div style={{ color: ui.colors.muted }}>Aucun joueur marqué présent.</div>}
             </div>
           </div>
         </div>
@@ -1030,123 +717,51 @@ export default function App() {
   };
 
   /* ================================
-      LINEUP SECTION (zones 1→6)
-  =================================*/
-
+     Onglet COMPOS (zones 1→6)
+  ==================================*/
   const LineupSection = () => {
     const lineup = currentLineup!;
-    const setSlot = (
-      zone: 1 | 2 | 3 | 4 | 5 | 6,
-      patch: Partial<{ playerId: string | undefined; plannedPos: Position | undefined }>
-    ) => {
-      updateLineup((l) => ({
-        ...l,
-        slots: l.slots.map((s) =>
-          s.zone === zone ? { ...s, ...patch } : s
-        ),
-      }));
+    const setSlot = (zone: 1 | 2 | 3 | 4 | 5 | 6, patch: Partial<{ playerId: string | undefined; plannedPos: Position | undefined }>) => {
+      updateLineup((l) => ({ ...l, slots: l.slots.map((s) => (s.zone === zone ? { ...s, ...patch } : s)) }));
     };
+    const occupied = new Set((lineup.slots ?? []).map((s) => s.playerId).filter(Boolean) as string[]);
 
-    const occupied = new Set(
-      (lineup.slots ?? [])
-        .map((s) => s.playerId)
-        .filter(Boolean) as string[]
-    );
-
-    const grid: React.CSSProperties = {
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 12,
-    };
+    const grid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 };
 
     return (
-      <Section
-        title="Composition (Zones 1 → 6)"
-        subtitle="Sélectionne parmi les joueurs présents"
-      >
+      <Section title="Composition (Zones 1 → 6)" subtitle="Sélectionne parmi les joueurs présents">
         <div style={{ ...hStack(8), marginBottom: 10 }}>
           <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
-
-          <Select
-            value={selectedMatchId}
-            onChange={(e) => setSelectedMatchId(e.target.value)}
-            style={{ padding: "6px 10px" }}
-          >
+          <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
             {matches.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.id} • {m.opponent} • {m.date}
               </option>
             ))}
           </Select>
-
-          <div style={{ marginLeft: "auto", fontSize: 12, color: ui.colors.muted }}>
-            {presentPlayers.length} présent(s)
-          </div>
+          <div style={{ marginLeft: "auto", fontSize: 12, color: ui.colors.muted }}>{presentPlayers.length} présent(s)</div>
         </div>
 
         <div style={grid}>
           {lineup.slots.map((slot) => (
-            <div
-              key={slot.zone}
-              style={{
-                border: `1px solid ${ui.colors.border}`,
-                borderRadius: 16,
-                padding: 12,
-                background: ui.colors.cardBg,
-              }}
-            >
-              <div
-                style={{
-                  ...hStack(8),
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                }}
-              >
+            <div key={slot.zone} style={{ border: `1px solid ${ui.colors.border}`, borderRadius: 16, padding: 12, background: ui.colors.cardBg }}>
+              <div style={{ ...hStack(8), justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ fontWeight: 700 }}>Zone {slot.zone}</div>
-
-                {slot.playerId && (
-                  <IconButton onClick={() => setSlot(slot.zone, { playerId: undefined })}>
-                    Vider
-                  </IconButton>
-                )}
+                {slot.playerId && <IconButton onClick={() => setSlot(slot.zone, { playerId: undefined })}>Vider</IconButton>}
               </div>
-
               <div style={vStack(10)}>
-                {/* Choix du joueur */}
                 <Field label="Joueur (présent)">
-                  <Select
-                    value={slot.playerId ?? ""}
-                    onChange={(e) =>
-                      setSlot(slot.zone, {
-                        playerId: e.target.value || undefined,
-                      })
-                    }
-                  >
+                  <Select value={slot.playerId ?? ""} onChange={(e) => setSlot(slot.zone, { playerId: e.target.value || undefined })}>
                     <option value="">— Choisir —</option>
-
                     {presentPlayers.map((p) => (
-                      <option
-                        key={p.id}
-                        value={p.id}
-                        disabled={occupied.has(p.id) && slot.playerId !== p.id}
-                      >
+                      <option key={p.id} value={p.id} disabled={occupied.has(p.id) && slot.playerId !== p.id}>
                         {p.prenom} {p.nom}
                       </option>
                     ))}
                   </Select>
                 </Field>
-
-                {/* Choix du poste prévu */}
                 <Field label="Poste prévu">
-                  <Select
-                    value={slot.plannedPos ?? ""}
-                    onChange={(e) =>
-                      setSlot(slot.zone, {
-                        plannedPos: (e.target.value as Position) || undefined,
-                      })
-                    }
-                  >
-                    <option value=""></option>
+                  <Select value={slot.plannedPos ?? "-"} onChange={(e) => setSlot(slot.zone, { plannedPos: e.target.value as Position })}>
                     {POSITIONS.map((p) => (
                       <option key={p} value={p}>
                         {p}
@@ -1159,14 +774,11 @@ export default function App() {
           ))}
         </div>
 
-        <div style={{ ...hStack(8), marginTop: 12 }}>
+        <div style={{ ...hStack(8,), marginTop: 12 }}>
           <Button onClick={() => window.print()}>Imprimer / PDF</Button>
-
           <IconButton
             onClick={() => {
-              const count = (role: Position) =>
-                lineup?.slots.filter((s) => s.plannedPos === role).length ?? 0;
-
+              const count = (role: Position) => lineup?.slots.filter((s) => s.plannedPos === role).length ?? 0;
               alert(`Répartition rapide
 2 - Passe : ${count("2 - Passe")}
 3 - Centre : ${count("3 - Centre")}
@@ -1180,52 +792,29 @@ export default function App() {
     );
   };
 
-/* ================================
-      RENDER FINAL
-  =================================*/
-
+  /* ================================
+     Render
+  ==================================*/
   return (
     <UIContext.Provider value={ui}>
-      <div
-        style={{
-          minHeight: "100vh",
-          background: ui.colors.pageBg,
-          padding: "16px 16px 60px",
-          color: ui.colors.text,
-        }}
-      >
+      <div style={{ minHeight: "100vh", background: ui.colors.pageBg, padding: "16px 16px 60px", color: ui.colors.text }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          {/* ===== HEADER ===== */}
           <header style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>
-              Volley — Composition
-            </div>
-
+            <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Composition</div>
             <div style={{ color: ui.colors.muted, marginTop: 4, fontSize: 14 }}>
-              Gestion des joueurs, présences et compositions en fonction des postes :
-              2‑Passe, 3‑Centre, 4‑Pointu. (Données stockées en local.)
+              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données dans stockées en locacl.)
             </div>
           </header>
 
-          {/* ===== NAV ===== */}
           <Nav />
 
-          {/* ===== TABS ===== */}
           {activeTab === "players" && <PlayersSection />}
           {activeTab === "matches" && <MatchesSection />}
           {activeTab === "presences" && <PresencesSection />}
           {activeTab === "lineup" && <LineupSection />}
 
-          {/* ===== FOOTER ===== */}
-          <footer
-            style={{
-              marginTop: 24,
-              textAlign: "center",
-              fontSize: 12,
-              color: ui.colors.muted,
-            }}
-          >
-            v0.5 — Données stockées localement. Mode clair/sombre actif.
+          <footer style={{ marginTop: 24, textAlign: "center", fontSize: 12, color: ui.colors.muted }}>
+            v0.5 — Données stockées localement. Design épuré (clair/sombre) prêt pour “Tactique” & “Countdown”.
           </footer>
         </div>
       </div>
