@@ -800,9 +800,9 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: ui.colors.pageBg, padding: "16px 16px 60px", color: ui.colors.text }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <header style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Coach Board</div>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Composition</div>
             <div style={{ color: ui.colors.muted, marginTop: 4, fontSize: 14 }}>
-              Inspiré de VolleyMatch : gestion claire des joueurs, présences et compositions (2‑Passe, 3‑Centre, 4‑Pointu).
+              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données dans stockées en locacl.)
             </div>
           </header>
 
