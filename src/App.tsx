@@ -728,121 +728,102 @@ const MatchesSection = () => {
     </Section>
   );
 };
-  /* ================================
-     Onglet PRESENCES
-  ==================================*/
-  const PresencesSection = () => {
-    return (
-      <Section
-        title="Présences"
-        subtitle="Marque les joueurs présents pour le match sélectionné"
-        right={
-          <div style={hStack(8)}>
-            <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
-            <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
-              {matches.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.id} • {m.opponent} • {m.date}
-                </option>
-              ))}
-            </Select>
-          </div>
-        }
-      >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Effectif</div>
-            <div style={vStack(8)}>
-              {players.map((p) => {
-                const isPresent = presentPlayerIds.has(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    style={{
-                      ...hStack(10),
-                      justifyContent: "space-between",
-                      border: `1px solid ${ui.colors.border}`,
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      background: isPresent ? ui.colors.presentBg : ui.colors.cardBg,
-                    }}
-                  >
-                    <div style={hStack(8)}>
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 999,
-                          background: ui.colors.avatarBg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: ui.colors.avatarText,
-                        }}
-                      >
-                        {initials(p.nom, p.prenom)}
-                      </div>
-                      <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
-                      <Tag text={p.pos1} />
-                      {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
-                    </div>
-                    <Button style={{ background: isPresent ? ui.colors.success : ui.colors.primary }} onClick={() => setPresence(selectedMatchId!, p.id, !isPresent)}>
-                      {isPresent ? "Présent" : "Marquer présent"}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+/* ================================
+   Onglet PRESENCES (nouvelle version simple)
+==================================*/
+const PresencesSection = () => {
+  return (
+    <Section
+      title="Présences"
+      subtitle="Coche les joueurs présents pour le match sélectionné"
+      right={
+        <div style={hStack(8)}>
+          <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
+          <Select
+            value={selectedMatchId}
+            onChange={(e) => setSelectedMatchId(e.target.value)}
+            style={{ padding: "6px 10px" }}
+          >
+            {matches.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id} • {m.opponent} • {m.date}
+              </option>
+            ))}
+          </Select>
+        </div>
+      }
+    >
+      {/* LISTE UNIQUE */}
+      <div style={vStack(8)}>
+        {players.map((p) => {
+          const isPresent = presentPlayerIds.has(p.id);
 
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Présents ({presentPlayers.length})</div>
-            <div style={vStack(8)}>
-              {presentPlayers.map((p) => (
+          return (
+            <div
+              key={p.id}
+              style={{
+                ...hStack(10),
+                justifyContent: "space-between",
+                border: `1px solid ${ui.colors.border}`,
+                borderRadius: 12,
+                padding: "10px 12px",
+                background: isPresent ? ui.colors.presentBg : ui.colors.cardBg,
+              }}
+            >
+              {/* Infos joueur */}
+              <div style={hStack(8)}>
                 <div
-                  key={p.id}
                   style={{
-                    ...hStack(10),
-                    justifyContent: "space-between",
-                    border: `1px solid ${ui.colors.border}`,
-                    borderRadius: 12,
-                    padding: "10px 12px",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: ui.colors.avatarBg,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: ui.colors.avatarText,
                   }}
                 >
-                  <div style={hStack(8)}>
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        background: ui.colors.avatarBg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: ui.colors.avatarText,
-                      }}
-                    >
-                      {initials(p.nom, p.prenom)}
-                    </div>
-                    <div style={{ fontWeight: 500 }}>{p.prenom} {p.nom}</div>
-                    <Tag text={p.pos1} />
-                    {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
-                  </div>
-                  <IconButton onClick={() => setPresence(selectedMatchId!, p.id, false)}>Retirer</IconButton>
+                  {initials(p.nom, p.prenom)}
                 </div>
-              ))}
-              {presentPlayers.length === 0 && <div style={{ color: ui.colors.muted }}>Aucun joueur marqué présent.</div>}
-            </div>
-          </div>
-        </div>
-      </Section>
-    );
-  };
 
+                <div style={{ fontWeight: 500 }}>
+                  {p.prenom} {p.nom}
+                </div>
+
+                <Tag text={p.pos1} />
+                {p.pos2 && <Tag text={p.pos2} />}
+                {p.pos3 && <Tag text={p.pos3} />}
+              </div>
+
+              {/* Checkbox Présent */}
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={isPresent}
+                  onChange={(e) =>
+                    setPresence(selectedMatchId!, p.id, e.target.checked)
+                  }
+                />
+                <span style={{ fontSize: 13 }}>
+                  {isPresent ? "Présent" : "Absent"}
+                </span>
+              </label>
+            </div>
+          );
+        })}
+
+        {players.length === 0 && (
+          <div style={{ color: ui.colors.muted }}>
+            Aucun joueur dans l'effectif.
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+};
   /* ================================
      Onglet COMPOS (zones 1→6)
   ==================================*/
