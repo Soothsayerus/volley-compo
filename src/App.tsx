@@ -407,117 +407,199 @@ export default function App() {
     </div>
   );
 
-  /* ================================
-     Onglet JOUEURS (MAJ : suppression licence)
-  ==================================*/
-  const PlayersSection = () => {
-    const [draft, setDraft] = useState<Omit<Player, "id">>({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
+ /* ================================
+   Onglet JOUEURS (pos1 obligatoire, pos2/pos3 facultatifs)
+==================================*/
+const PlayersSection = () => {
+  const [draft, setDraft] = useState<Omit<Player, "id">>({
+    nom: "",
+    prenom: "",
+    sexe: "Homme",
+    pos1: "2 - Passe",    // obligatoire
+    pos2: undefined,      // facultatif
+    pos3: undefined,      // facultatif
+    note: "",
+  });
 
-    return (
-      <Section
-        title="Effectif"
-        subtitle="Renseigne les joueurs puis organise leur compo"
-        right={
-          <div style={hStack(8)}>
-            <span style={{ fontSize: 12, color: ui.colors.muted }}>Trier par</span>
-            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} style={{ padding: "6px 10px" }}>
-              <option value="nom">Nom</option>
-              <option value="pos1">Position N°1</option>
-            </Select>
-          </div>
-        }
-      >
-        {/* Champs empilés */}
-        <div style={vStack(12)}>
-          <Field label="Nom">
-            <TextInput value={draft.nom} onChange={(e) => setDraft({ ...draft, nom: e.target.value })} placeholder="Dupont" />
-          </Field>
-          <Field label="Prénom">
-            <TextInput value={draft.prenom} onChange={(e) => setDraft({ ...draft, prenom: e.target.value })} placeholder="Alex" />
-          </Field>
-          <Field label="Sexe">
-            <Select value={draft.sexe} onChange={(e) => setDraft({ ...draft, sexe: e.target.value as "Homme" | "Femme" })}>
-              <option value="Homme">Homme</option>
-              <option value="Femme">Femme</option>
-            </Select>
-          </Field>
-          <Field label="1er poste">
-            <Select value={draft.pos1} onChange={(e) => setDraft({ ...draft, pos1: e.target.value as Position })}>
-              {POSITIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="2ème poste">
-            <Select value={draft.pos2} onChange={(e) => setDraft({ ...draft, pos2: e.target.value as Position })}>
-              {POSITIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="3ème poste">
-            <Select value={draft.pos3} onChange={(e) => setDraft({ ...draft, pos3: e.target.value as Position })}>
-              {POSITIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <Button
-            onClick={() => {
-              if (!draft.nom || !draft.prenom) return;
-              addPlayer(draft);
-              setDraft({ nom: "", prenom: "", sexe: "Homme", pos1: "-", pos2: "-", pos3: "-", note: "" });
-            }}
+  return (
+    <Section
+      title="Effectif"
+      subtitle="Renseigne les joueurs puis organise leur compo"
+      right={
+        <div style={hStack(8)}>
+          <span style={{ fontSize: 12, color: ui.colors.muted }}>Trier par</span>
+          <Select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            style={{ padding: "6px 10px" }}
           >
-            Ajouter le joueur
-          </Button>
+            <option value="nom">Nom</option>
+            <option value="pos1">Position N°1</option>
+          </Select>
         </div>
+      }
+    >
+      {/* FORMULAIRE JOUEUR */}
+      <div style={vStack(12)}>
+        <Field label="Nom">
+          <TextInput
+            value={draft.nom}
+            onChange={(e) => setDraft({ ...draft, nom: e.target.value })}
+            placeholder="Dupont"
+          />
+        </Field>
 
-        {/* Liste de joueurs – cartes lisibles */}
-        <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-          {sortedPlayers.map((p) => (
-            <div key={p.id} style={{ ...ui.card, padding: 16 }}>
-              <div style={hStack(10)}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 999,
-                    background: ui.colors.avatarBg,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    color: ui.colors.avatarText,
-                  }}
-                >
-                  {initials(p.nom, p.prenom)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700 }}>{p.prenom} {p.nom}</div>
-                  <div style={{ fontSize: 12, color: ui.colors.muted }}>{p.sexe}</div>
-                </div>
-                <IconButton onClick={() => removePlayer(p.id)}>Suppr</IconButton>
+        <Field label="Prénom">
+          <TextInput
+            value={draft.prenom}
+            onChange={(e) => setDraft({ ...draft, prenom: e.target.value })}
+            placeholder="Alex"
+          />
+        </Field>
+
+        <Field label="Sexe">
+          <Select
+            value={draft.sexe}
+            onChange={(e) =>
+              setDraft({ ...draft, sexe: e.target.value as "Homme" | "Femme" })
+            }
+          >
+            <option value="Homme">Homme</option>
+            <option value="Femme">Femme</option>
+          </Select>
+        </Field>
+
+        {/* POS1 obligatoire */}
+        <Field label="1er poste (obligatoire)">
+          <Select
+            value={draft.pos1}
+            onChange={(e) =>
+              setDraft({ ...draft, pos1: e.target.value as Position })
+            }
+          >
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        {/* POS2 facultatif */}
+        <Field label="2ème poste (facultatif)">
+          <Select
+            value={draft.pos2 ?? ""}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                pos2: (e.target.value as Position) || undefined,
+              })
+            }
+          >
+            <option value=""></option>
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        {/* POS3 facultatif */}
+        <Field label="3ème poste (facultatif)">
+          <Select
+            value={draft.pos3 ?? ""}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                pos3: (e.target.value as Position) || undefined,
+              })
+            }
+          >
+            <option value=""></option>
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
+      {/* AJOUT DU JOUEUR */}
+      <div style={{ marginTop: 12 }}>
+        <Button
+          onClick={() => {
+            if (!draft.nom || !draft.prenom || !draft.pos1) return;
+
+            addPlayer(draft);
+
+            setDraft({
+              nom: "",
+              prenom: "",
+              sexe: "Homme",
+              pos1: "2 - Passe",
+              pos2: undefined,
+              pos3: undefined,
+              note: "",
+            });
+          }}
+        >
+          Ajouter le joueur
+        </Button>
+      </div>
+
+      {/* LISTE DES JOUEURS */}
+      <div
+        style={{
+          marginTop: 18,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {sortedPlayers.map((p) => (
+          <div key={p.id} style={{ ...ui.card, padding: 16 }}>
+            <div style={hStack(10)}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 999,
+                  background: ui.colors.avatarBg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  color: ui.colors.avatarText,
+                }}
+              >
+                {initials(p.nom, p.prenom)}
               </div>
-              <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <Tag text={p.pos1} />
-                {p.pos2 !== "-" && <Tag text={p.pos2} />} {p.pos3 !== "-" && <Tag text={p.pos3} />}
+
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700 }}>
+                  {p.prenom} {p.nom}
+                </div>
+                <div style={{ fontSize: 12, color: ui.colors.muted }}>
+                  {p.sexe}
+                </div>
               </div>
+
+              <IconButton onClick={() => removePlayer(p.id)}>Suppr</IconButton>
             </div>
-          ))}
-        </div>
-      </Section>
-    );
-  };
+
+            <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
+              <Tag text={p.pos1} />
+              {p.pos2 && <Tag text={p.pos2} />}
+              {p.pos3 && <Tag text={p.pos3} />}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+};
 
 /* ================================
    Onglet MATCHS — avec tri par date
