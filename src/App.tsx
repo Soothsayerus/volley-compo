@@ -1052,17 +1052,7 @@ const LineupSection = () => {
     outline: `2px solid ${ui.colors.primary}`,
     boxShadow: "0 0 0 2px rgba(0,0,0,0.05)",
   };
-   
-// Couleur de bordure selon le rôle principal (pos1)
-const getRoleColor = (p: Player) => {
-  switch (p.pos1) {
-    case "2 - Passe":  return "#eab308"; // Jaune (Passeur)
-    case "3 - Centre": return "#22c55e"; // Vert (Centre)
-    case "4 - Pointu": return "#f97316"; // Orange (Pointu)
-    default:           return ui.colors.border;
-  }
-   
-};
+
   const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
     const slot = getSlot(zone);
     const p = players.find(pp => pp.id === slot.playerId);
@@ -1126,26 +1116,8 @@ const getRoleColor = (p: Player) => {
           {BOTTOM_ROW.map(z => <ZoneCell key={z} zone={z} />)}
         </div>
       </div>
-// Couleurs de fond + texte selon le rôle principal (pos1)
-const getRoleBg = (p: Player) => {
-  switch (p.pos1) {
-    case "2 - Passe":  return "#fef08a"; // jaune clair
-    case "3 - Centre": return "#bbf7d0"; // vert clair
-    case "4 - Pointu": return "#fed7aa"; // orange clair
-    default:           return ui.colors.cardBg;
-  }
-};
 
-const getRoleText = (p: Player) => {
-  switch (p.pos1) {
-    case "2 - Passe":  return "#713f12"; // brun/jaune foncé
-    case "3 - Centre": return "#14532d"; // vert foncé
-    case "4 - Pointu": return "#7c2d12"; // orange/brun foncé
-    default:           return ui.colors.text;
-  }
-};
-       
-{/* BANC — sélectionner un joueur (tap) */}
+{/* BANC — sélectionner un joueur */}
 <div style={{ marginTop:14 }}>
   <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
@@ -1156,7 +1128,7 @@ const getRoleText = (p: Player) => {
       padding:10,
       minHeight:60,
       display:"flex",
-      flexDirection:"column",   // 👈 un joueur par ligne
+      flexWrap:"wrap",
       gap:8
     }}
   >
@@ -1172,9 +1144,7 @@ const getRoleText = (p: Player) => {
           onClick={() => setSelectedPlayerId(p.id)}
           style={{
             ...(active ? benchPillActive : benchPill),
-            background: getRoleBg(p),   // 👈 fond selon pos1
-            color: getRoleText(p),      // 👈 texte lisible
-            borderColor: "transparent", // 👈 bordure discrète
+            borderColor: getRoleColor(p),   // 👈 couleur selon pos1
           }}
           title="Sélectionner ce joueur puis taper une position"
         >
@@ -1231,5 +1201,3 @@ const getRoleText = (p: Player) => {
   );
 }
 ``
-
-Repars de celui ci 
