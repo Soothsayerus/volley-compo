@@ -906,61 +906,77 @@ const PresencesSection = () => {
   );
 };
 /* ================================
-   Onglet COMPOS — Drag & Drop (2 Passeurs, 2 Pointus, 2 Centres)
+   Onglet COMPOS — Terrain Drag & Drop (lignes 4‑3‑2 / 5‑6‑1, 1 joueur/case)
 ==================================*/
 const LineupSection = () => {
   const lineup = currentLineup!;
-  const uiRole = (role: Position) =>
-    role === "2 - Passe" ? "Passeur" : role === "4 - Pointu" ? "Pointu" : "Centre";
 
-  // Définition des 6 cases : 3 lignes (rôles), 2 colonnes (A/B)
-  const ROWS: { label: string; role: Position; leftZone: 1|2|3|4|5|6; rightZone: 1|2|3|4|5|6 }[] = [
-    { label: "Passeur", role: "2 - Passe",  leftZone: 1, rightZone: 2 },
-    { label: "Pointu",  role: "4 - Pointu", leftZone: 3, rightZone: 4 },
-    { label: "Centre",  role: "3 - Centre", leftZone: 5, rightZone: 6 },
-  ];
+  // Rôle par zone (1=4 Passeur, 2=5 Pointu, 3=6 Centre)
+  const ROLE_BY_ZONE: Record<1|2|3|4|5|6, Position> = {
+    1: "2 - Passe",
+    2: "4 - Pointu",
+    3: "3 - Centre",
+    4: "2 - Passe",
+    5: "4 - Pointu",
+    6: "3 - Centre",
+  };
 
-  // Récup slot par zone (crée si manquant)
+  // Disposition du terrain : top row (4,3,2) / bottom row (5,6,1)
+  const TOP_ROW: (1|2|3|4|5|6)[]    = [4, 3, 2];
+  const BOTTOM_ROW: (1|2|3|4|5|6)[] = [5, 6, 1];
+
+  // Récup slot par zone (existe déjà dans lineup.slots)
   const getSlot = (zone: 1|2|3|4|5|6) =>
     (lineup.slots.find(s => s.zone === zone) ??
       { zone, playerId: undefined, plannedPos: undefined });
 
-  // Occupés / Banc
+  // Joueurs assignés / banc
   const assignedIds = new Set(
     (lineup.slots ?? []).map(s => s.playerId).filter(Boolean) as string[]
   );
   const benchPlayers = presentPlayers.filter(p => !assignedIds.has(p.id));
 
-  // Helpers DnD
+  // Helpers Drag & Drop
   const onDragStartPlayer = (e: React.DragEvent, playerId: string) => {
     e.dataTransfer.setData("text/plain", playerId);
     e.dataTransfer.effectAllowed = "move";
   };
-  const onDragOverAllow = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  const onDragOverAllow = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
 
-  // Assigner un joueur à une zone (et enlever d’abord l’éventuel placement précédent)
-  const assignPlayerToZone = (playerId: string, zone: 1|2|3|4|5|6, plannedPos: Position) => {
+  // Assigner un joueur à une zone (retire d’abord toute ancienne affectation)
+  const assignPlayerToZone = (playerId: string, zone: 1|2|3|4|5|6) => {
+    const planned = ROLE_BY_ZONE[zone];
     updateLineup(l => {
-      const removedElsewhere = l.slots.map(s => s.playerId === playerId ? { ...s, playerId: undefined } : s);
-      const updated = removedElsewhere.map(s => s.zone === zone ? { ...s, playerId, plannedPos } : s);
+      const removedElsewhere = l.slots.map(s =>
+        s.playerId === playerId ? { ...s, playerId: undefined } : s
+      );
+      const updated = removedElsewhere.map(s =>
+        s.zone === zone ? { ...s, playerId, plannedPos: planned } : s
+      );
       return { ...l, slots: updated };
     });
   };
 
-  // Retirer un joueur d’une zone
+  // Retirer joueur d’une zone
   const clearZone = (zone: 1|2|3|4|5|6) => {
-    updateLineup(l => ({ ...l, slots: l.slots.map(s => s.zone === zone ? { ...s, playerId: undefined } : s) }));
+    updateLineup(l => ({
+      ...l,
+      slots: l.slots.map(s => s.zone === zone ? { ...s, playerId: undefined } : s)
+    }));
   };
 
-  // Drop handler sur case
-  const makeOnDropToZone = (zone: 1|2|3|4|5|6, role: Position) => (e: React.DragEvent) => {
+  // Drop sur case
+  const makeOnDropToZone = (zone: 1|2|3|4|5|6) => (e: React.DragEvent) => {
     e.preventDefault();
     const playerId = e.dataTransfer.getData("text/plain");
     if (!playerId) return;
-    assignPlayerToZone(playerId, zone, role);
+    assignPlayerToZone(playerId, zone);
   };
 
-  // Drop handler sur le banc (retirer le joueur de sa case)
+  // Drop sur banc
   const onDropToBench = (e: React.DragEvent) => {
     e.preventDefault();
     const playerId = e.dataTransfer.getData("text/plain");
@@ -971,21 +987,68 @@ const LineupSection = () => {
     }));
   };
 
-  const gridOuter: React.CSSProperties = { display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 };
-  const rowGrid: React.CSSProperties   = { display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, alignItems:"stretch" };
+  // Indication : le joueur correspond-il au rôle attendu de la zone ?
+  const matchesRole = (p: Player, zone: 1|2|3|4|5|6) =>
+    [p.pos1, p.pos2, p.pos3].includes(ROLE_BY_ZONE[zone]);
+
+  // Utilitaires
+  const clearAll = () => {
+    updateLineup(l => ({ ...l, slots: l.slots.map(s => ({ ...s, playerId: undefined })) }));
+  };
+
+  const autoDistribute = () => {
+    // Remplit automatiquement 4‑3‑2 puis 5‑6‑1 en privilégiant pos1 puis pos2/pos3
+    const order: (1|2|3|4|5|6)[] = [...TOP_ROW, ...BOTTOM_ROW]; // [4,3,2,5,6,1]
+    const available = [...presentPlayers];
+    const pickForRole = (role: Position) => {
+      let i = available.findIndex(p => p.pos1 === role);
+      if (i === -1) i = available.findIndex(p => p.pos2 === role || p.pos3 === role);
+      return i >= 0 ? available.splice(i, 1)[0] : undefined;
+    };
+
+    updateLineup(l => {
+      let slots = l.slots.map(s => ({ ...s, playerId: undefined }));
+      for (const z of order) {
+        const r = ROLE_BY_ZONE[z];
+        const p = pickForRole(r);
+        if (p) {
+          slots = slots.map(s => s.zone === z ? { ...s, playerId: p.id, plannedPos: r } : s);
+        }
+      }
+      return { ...l, slots };
+    });
+  };
+
+  // Styles
+  const court: React.CSSProperties = {
+    border: `2px solid ${ui.colors.border}`,
+    borderRadius: 16,
+    padding: 12,
+    background: ui.colors.cardBg,
+  };
+  const gridRow: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: 10,
+  };
   const zoneBox = (highlight = false): React.CSSProperties => ({
     border: `1px dashed ${ui.colors.border}`,
     borderRadius: 12,
     padding: 12,
-    background: highlight ? "#0ea5e90f" : ui.colors.cardBg,
-    minHeight: 64,
-    display:"flex",
-    alignItems:"center",
-    justifyContent:"space-between",
+    minHeight: 70,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
+    background: highlight ? "#0ea5e90f" : ui.colors.cardBg,
   });
-
-  const playerPill: React.CSSProperties = {
+  const avatar: React.CSSProperties = {
+    width: 28, height: 28, borderRadius: 999,
+    background: ui.colors.avatarBg,
+    display:"flex", alignItems:"center", justifyContent:"center",
+    fontSize:12, fontWeight:700, color: ui.colors.avatarText,
+  };
+  const pill: React.CSSProperties = {
     display:"inline-flex",
     alignItems:"center",
     gap:8,
@@ -995,50 +1058,57 @@ const LineupSection = () => {
     borderRadius: 999,
     cursor:"grab",
   };
+  const zoneHeader = (z: 1|2|3|4|5|6) => (
+    <div style={{ fontSize: 12, color: ui.colors.muted, marginBottom: 4 }}>
+      Position {z} • {ROLE_BY_ZONE[z].split(" - ")[1]}
+    </div>
+  );
 
-  const headerCell: React.CSSProperties = { fontSize:13, color: ui.colors.muted, marginBottom:6 };
+  const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
+    const slot = getSlot(zone);
+    const p = players.find(pp => pp.id === slot.playerId);
+    const ok = p ? matchesRole(p, zone) : false;
 
-  // Petit indicateur : le joueur “matche” le rôle de la case ?
-  const matchesRole = (p: Player, role: Position) => [p.pos1, p.pos2, p.pos3].includes(role);
-
-  // Actions utilitaires
-  const clearAll = () => {
-    updateLineup(l => ({ ...l, slots: l.slots.map(s => ({ ...s, playerId: undefined })) }));
-  };
-
-  const autoDistribute = () => {
-    // Remplit automatiquement par ordre : Passeur A/B, Pointu A/B, Centre A/B avec joueurs présents selon pos1 puis pos2/pos3
-    const targetOrder = [
-      { zone: 1 as 1|2|3|4|5|6, role: "2 - Passe" as Position },
-      { zone: 2 as 1|2|3|4|5|6, role: "2 - Passe" as Position },
-      { zone: 3 as 1|2|3|4|5|6, role: "4 - Pointu" as Position },
-      { zone: 4 as 1|2|3|4|5|6, role: "4 - Pointu" as Position },
-      { zone: 5 as 1|2|3|4|5|6, role: "3 - Centre" as Position },
-      { zone: 6 as 1|2|3|4|5|6, role: "3 - Centre" as Position },
-    ];
-    const available = [...presentPlayers];
-    const takeForRole = (role: Position) => {
-      // Priorité pos1 > pos2/pos3
-      let idx = available.findIndex(p => p.pos1 === role);
-      if (idx === -1) idx = available.findIndex(p => p.pos2 === role || p.pos3 === role);
-      return idx >= 0 ? available.splice(idx, 1)[0] : undefined;
-    };
-
-    updateLineup(l => {
-      // Vider d'abord
-      let slots = l.slots.map(s => ({ ...s, playerId: undefined }));
-      for (const t of targetOrder) {
-        const picked = takeForRole(t.role);
-        if (picked) {
-          slots = slots.map(s => s.zone === t.zone ? { ...s, playerId: picked.id, plannedPos: t.role } : s);
-        }
-      }
-      return { ...l, slots };
-    });
+    return (
+      <div>
+        {zoneHeader(zone)}
+        <div
+          style={zoneBox(!!p && !ok)}
+          onDragOver={onDragOverAllow}
+          onDrop={makeOnDropToZone(zone)}
+        >
+          {p ? (
+            <>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div
+                  style={avatar}
+                  draggable
+                  title="Glisser pour déplacer"
+                  onDragStart={(e) => onDragStartPlayer(e, p.id)}
+                >
+                  {initials(p.nom, p.prenom)}
+                </div>
+                <div style={{ fontWeight: 600 }}>
+                  {p.prenom} {p.nom}
+                </div>
+                {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
+              </div>
+              <IconButton onClick={() => clearZone(zone)}>Vider</IconButton>
+            </>
+          ) : (
+            <div style={{ color: ui.colors.muted }}>Glisser un joueur ici…</div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <Section title="Composition — Drag & Drop (Côté A vs B)" subtitle="Glisse-dépose les joueurs présents dans chaque rôle.">
+    <Section
+      title="Composition — Terrain (Drag & Drop)"
+      subtitle="Dispose les joueurs par lignes : 4‑3‑2 (haut) • 5‑6‑1 (bas). Les rôles sont imposés : 1/4 Passeurs, 2/5 Pointus, 3/6 Centres."
+    >
+      {/* Barre de sélection du match */}
       <div style={{ ...hStack(8), marginBottom: 10 }}>
         <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
         <Select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)} style={{ padding: "6px 10px" }}>
@@ -1048,107 +1118,24 @@ const LineupSection = () => {
             </option>
           ))}
         </Select>
-        <div style={{ marginLeft:"auto", fontSize:12, color: ui.colors.muted }}>{presentPlayers.length} présent(s)</div>
-      </div>
-
-      {/* Tableau A vs B */}
-      <div style={{ ...gridOuter }}>
-        {/* Colonne A */}
-        <div>
-          <div style={{ fontWeight:700, marginBottom:6 }}>Côté A</div>
-          {ROWS.map(row => {
-            const left = getSlot(row.leftZone);
-            const pLeft = players.find(p => p.id === left.playerId);
-            const leftOk = pLeft ? matchesRole(pLeft, row.role) : false;
-            return (
-              <div key={`row-left-${row.leftZone}`} style={{ marginBottom: 10 }}>
-                <div style={headerCell}>{row.label}</div>
-                <div
-                  style={zoneBox(!!pLeft && !leftOk)}
-                  onDragOver={onDragOverAllow}
-                  onDrop={makeOnDropToZone(row.leftZone, row.role)}
-                >
-                  {pLeft ? (
-                    <>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div
-                          style={{
-                            width: 28, height: 28, borderRadius: 999,
-                            background: ui.colors.avatarBg,
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            fontSize:12, fontWeight:700, color: ui.colors.avatarText,
-                          }}
-                          draggable
-                          onDragStart={(e) => onDragStartPlayer(e, pLeft.id)}
-                          title="Glisser pour déplacer"
-                        >
-                          {initials(pLeft.nom, pLeft.prenom)}
-                        </div>
-                        <div style={{ fontWeight: 600 }}>
-                          {pLeft.prenom} {pLeft.nom}
-                        </div>
-                        {leftOk ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
-                      </div>
-                      <IconButton onClick={() => clearZone(row.leftZone)}>Vider</IconButton>
-                    </>
-                  ) : (
-                    <div style={{ color: ui.colors.muted }}>Glisser un joueur ici…</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Colonne B */}
-        <div>
-          <div style={{ fontWeight:700, marginBottom:6 }}>Côté B</div>
-          {ROWS.map(row => {
-            const right = getSlot(row.rightZone);
-            const pRight = players.find(p => p.id === right.playerId);
-            const rightOk = pRight ? matchesRole(pRight, row.role) : false;
-            return (
-              <div key={`row-right-${row.rightZone}`} style={{ marginBottom: 10 }}>
-                <div style={headerCell}>{row.label}</div>
-                <div
-                  style={zoneBox(!!pRight && !rightOk)}
-                  onDragOver={onDragOverAllow}
-                  onDrop={makeOnDropToZone(row.rightZone, row.role)}
-                >
-                  {pRight ? (
-                    <>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div
-                          style={{
-                            width: 28, height: 28, borderRadius: 999,
-                            background: ui.colors.avatarBg,
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            fontSize:12, fontWeight:700, color: ui.colors.avatarText,
-                          }}
-                          draggable
-                          onDragStart={(e) => onDragStartPlayer(e, pRight.id)}
-                          title="Glisser pour déplacer"
-                        >
-                          {initials(pRight.nom, pRight.prenom)}
-                        </div>
-                        <div style={{ fontWeight: 600 }}>
-                          {pRight.prenom} {pRight.nom}
-                        </div>
-                        {rightOk ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
-                      </div>
-                      <IconButton onClick={() => clearZone(row.rightZone)}>Vider</IconButton>
-                    </>
-                  ) : (
-                    <div style={{ color: ui.colors.muted }}>Glisser un joueur ici…</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ marginLeft:"auto", fontSize:12, color: ui.colors.muted }}>
+          {presentPlayers.length} présent(s)
         </div>
       </div>
 
-      {/* Banc : présents non placés (drop pour retirer) */}
+      {/* Terrain */}
+      <div style={court}>
+        {/* Ligne haute : 4 - 3 - 2 */}
+        <div style={{ ...gridRow, marginBottom: 12 }}>
+          {TOP_ROW.map(zone => <ZoneCell key={zone} zone={zone} />)}
+        </div>
+        {/* Ligne basse : 5 - 6 - 1 */}
+        <div style={gridRow}>
+          {BOTTOM_ROW.map(zone => <ZoneCell key={zone} zone={zone} />)}
+        </div>
+      </div>
+
+      {/* Banc : présents non placés */}
       <div style={{ marginTop: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>Banc (présents non placés)</div>
         <div
@@ -1171,21 +1158,12 @@ const LineupSection = () => {
           {benchPlayers.map(p => (
             <div
               key={p.id}
-              style={playerPill}
+              style={pill}
               draggable
               onDragStart={(e) => onDragStartPlayer(e, p.id)}
               title="Glisser vers une case"
             >
-              <div
-                style={{
-                  width: 22, height: 22, borderRadius: 999,
-                  background: ui.colors.avatarBg,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:11, fontWeight:700, color: ui.colors.avatarText,
-                }}
-              >
-                {initials(p.nom, p.prenom)}
-              </div>
+              <div style={avatar}>{initials(p.nom, p.prenom)}</div>
               <span>{p.prenom} {p.nom}</span>
               <span style={{ display:"inline-flex", gap:6 }}>
                 <Tag text={p.pos1} />
@@ -1200,8 +1178,8 @@ const LineupSection = () => {
       {/* Actions */}
       <div style={{ ...hStack(8), marginTop: 12, flexWrap:"wrap" }}>
         <Button onClick={() => window.print()}>Imprimer / PDF</Button>
-        <IconButton onClick={autoDistribute}>Répartition auto (pos1→pos2/3)</IconButton>
-        <IconButton onClick={clearAll}>Vider tous les slots</IconButton>
+        <IconButton onClick={autoDistribute}>Répartition auto (pos1 → pos2/3)</IconButton>
+        <IconButton onClick={clearAll}>Vider toutes les positions</IconButton>
         <IconButton onClick={() => {
           const count = (role: Position) => lineup?.slots.filter(s => s.plannedPos === role && s.playerId).length ?? 0;
           alert(`Répartition par rôle
@@ -1215,7 +1193,6 @@ const LineupSection = () => {
     </Section>
   );
 };
-
   /* ================================
      Render
   ==================================*/
