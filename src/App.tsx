@@ -871,11 +871,7 @@ const PresencesSection = () => {
                   {initials(p.nom, p.prenom)}
                 </div>
 
-                <div style={{ fontWeight: 500 }}>
-                  {p.prenom} {p.nom}
-                </div>
 
-                 
                 {/* Nom + prénom */}
                 <div style={{ fontWeight: 500 }}>
                   {p.prenom} {p.nom}
