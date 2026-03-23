@@ -400,7 +400,6 @@ export default function App() {
         </button>
       ))}
       <div style={{ marginLeft: "auto", ...hStack(8) }}>
-        <div style={{ fontSize: 12, color: ui.colors.muted }}>Données locales (navigateur)</div>
         <IconButton onClick={toggleTheme} title={theme === "light" ? "Passer en mode sombre" : "Passer en mode clair"}>
           {theme === "light" ? "🌙 Mode sombre" : "☀️ Mode clair"}
         </IconButton>
