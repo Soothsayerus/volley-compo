@@ -875,6 +875,13 @@ const PresencesSection = () => {
                   {p.prenom} {p.nom}
                 </div>
 
+                 
+                {/* Nom + prénom */}
+                <div style={{ fontWeight: 500 }}>
+                  {p.prenom} {p.nom}
+                </div>
+              </div>
+
 
               {/* BOUTON Présent / Absent */}
               <Button
