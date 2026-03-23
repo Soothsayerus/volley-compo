@@ -729,13 +729,13 @@ const MatchesSection = () => {
   );
 };
 /* ================================
-   Onglet PRESENCES (nouvelle version simple)
+   Onglet PRESENCES (version bouton + sans "-")
 ==================================*/
 const PresencesSection = () => {
   return (
     <Section
       title="Présences"
-      subtitle="Coche les joueurs présents pour le match sélectionné"
+      subtitle="Indique quels joueurs sont présents pour ce match"
       right={
         <div style={hStack(8)}>
           <span style={{ fontSize: 12, color: ui.colors.muted }}>Match</span>
@@ -798,19 +798,18 @@ const PresencesSection = () => {
                 {p.pos3 && <Tag text={p.pos3} />}
               </div>
 
-              {/* Checkbox Présent */}
-              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={isPresent}
-                  onChange={(e) =>
-                    setPresence(selectedMatchId!, p.id, e.target.checked)
-                  }
-                />
-                <span style={{ fontSize: 13 }}>
-                  {isPresent ? "Présent" : "Absent"}
-                </span>
-              </label>
+              {/* BOUTON Présent / Absent */}
+              <Button
+                style={{
+                  background: isPresent ? ui.colors.success : ui.colors.primary,
+                  padding: "8px 14px",
+                }}
+                onClick={() =>
+                  setPresence(selectedMatchId!, p.id, !isPresent)
+                }
+              >
+                {isPresent ? "Présent" : "Marquer présent"}
+              </Button>
             </div>
           );
         })}
