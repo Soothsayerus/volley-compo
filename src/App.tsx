@@ -1117,7 +1117,7 @@ const LineupSection = () => {
         </div>
       </div>
 
-{/* BANC — sélectionner un joueur (tap) */}
+{/* BANC — sélectionner un joueur */}
 <div style={{ marginTop:14 }}>
   <div style={{ fontWeight:700, marginBottom:6 }}>Banc (tap pour sélectionner)</div>
 
@@ -1144,7 +1144,7 @@ const LineupSection = () => {
           onClick={() => setSelectedPlayerId(p.id)}
           style={{
             ...(active ? benchPillActive : benchPill),
-            borderColor: getRoleColor(p),   // 👈 couleur de rôle
+            borderColor: getRoleColor(p),   // 👈 couleur selon pos1
           }}
           title="Sélectionner ce joueur puis taper une position"
         >
@@ -1160,7 +1160,6 @@ const LineupSection = () => {
     })}
   </div>
 </div>
-
 
       {/* Actions */}
       <div style={{ ...hStack(8), marginTop:12, flexWrap:"wrap" }}>
