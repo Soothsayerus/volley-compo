@@ -875,11 +875,6 @@ const PresencesSection = () => {
                   {p.prenom} {p.nom}
                 </div>
 
-                  {/* N° des postes (sans intitulé) */}
-                  <Tag text={p.pos1.split(" - ")[0]} />
-                  {p.pos2 && p.pos2 !== "-" && <Tag text={p.pos2.split(" - ")[0]} />}
-                  {p.pos3 && p.pos3 !== "-" && <Tag text={p.pos3.split(" - ")[0]} />}
-              </div>
 
               {/* BOUTON Présent / Absent */}
               <Button
