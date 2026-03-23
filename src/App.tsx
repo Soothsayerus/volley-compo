@@ -520,7 +520,7 @@ export default function App() {
   };
 
 /* ================================
-   Onglet MATCHS
+   Onglet MATCHS (éditer / supprimer)
 ==================================*/
 const MatchesSection = () => {
   const [draft, setDraft] = useState<Match>({
@@ -532,10 +532,76 @@ const MatchesSection = () => {
     matchType: "Saison Hiver",
   });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetDraft = () =>
+    setDraft({
+      id: "",
+      date: new Date().toISOString().slice(0, 10),
+      opponent: "",
+      venue: "Domicile",
+      comment: "",
+      matchType: "Saison Hiver",
+    });
+
+  const startEdit = (m: Match) => {
+    setEditingId(m.id);
+    setDraft({ ...m });
+    setSelectedMatchId(m.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    resetDraft();
+  };
+
+  const saveMatch = () => {
+    if (editingId) {
+      // MODE ÉDITION
+      setMatches(prev =>
+        prev.map(m =>
+          m.id === editingId ? { ...m, ...draft, id: editingId } : m
+        )
+      );
+      setEditingId(null);
+      resetDraft();
+      return;
+    }
+
+    // AJOUT
+    if (!draft.id) return;
+
+    if (matches.some(m => m.id === draft.id)) {
+      alert(`Un match avec l'ID "${draft.id}" existe déjà.`);
+      return;
+    }
+
+    addMatch(draft);
+    resetDraft();
+  };
+
+  const removeMatch = (id: string) => {
+    if (!confirm("Supprimer ce match ? Les présences et compositions associées seront aussi supprimées.")) return;
+
+    setMatches(prev => prev.filter(m => m.id !== id));
+    setPresences(prev => prev.filter(p => p.matchId !== id));
+    setLineups(prev => prev.filter(l => l.matchId !== id));
+
+    if (selectedMatchId === id) {
+      const next = matches.find(m => m.id !== id)?.id;
+      setSelectedMatchId(next);
+    }
+
+    if (editingId === id) {
+      setEditingId(null);
+      resetDraft();
+    }
+  };
+
   return (
     <Section
       title="Matchs"
-      subtitle="Crée tes rencontres et sélectionne le match courant"
+      subtitle="Crée, modifie ou supprime des rencontres."
       right={
         <div style={hStack(8)}>
           <span style={{ fontSize: 12, color: ui.colors.muted }}>Match courant</span>
@@ -553,13 +619,14 @@ const MatchesSection = () => {
         </div>
       }
     >
-      {/* FORMULAIRE MATCH */}
+      {/* Formulaire */}
       <div style={vStack(12)}>
         <Field label="Match ID">
           <TextInput
             value={draft.id}
             onChange={(e) => setDraft({ ...draft, id: e.target.value })}
             placeholder="M3"
+            disabled={!!editingId}
           />
         </Field>
 
@@ -587,13 +654,10 @@ const MatchesSection = () => {
           />
         </Field>
 
-        {/* Nouveau champ : Type de match */}
         <Field label="Type de match">
           <Select
             value={draft.matchType}
-            onChange={(e) =>
-              setDraft({ ...draft, matchType: e.target.value as any })
-            }
+            onChange={(e) => setDraft({ ...draft, matchType: e.target.value as any })}
           >
             <option value="Saison Hiver">Saison Hiver</option>
             <option value="Saison Aller/Retour">Saison Aller/Retour</option>
@@ -605,33 +669,25 @@ const MatchesSection = () => {
           <TextInput
             value={draft.comment}
             onChange={(e) => setDraft({ ...draft, comment: e.target.value })}
+            placeholder="Notes, remarques…"
           />
         </Field>
       </div>
 
-      {/* BOUTON AJOUT */}
+      {/* Boutons du formulaire */}
       <div style={{ marginTop: 12, ...hStack(8) }}>
-        <Button
-          onClick={() => {
-            if (!draft.id) return;
-
-            addMatch(draft);
-
-            setDraft({
-              id: "",
-              date: new Date().toISOString().slice(0, 10),
-              opponent: "",
-              venue: "Domicile",
-              comment: "",
-              matchType: "Saison Hiver",
-            });
-          }}
-        >
-          Ajouter le match
+        <Button onClick={saveMatch}>
+          {editingId ? "Enregistrer" : "Ajouter"}
         </Button>
+
+        {editingId && (
+          <IconButton onClick={cancelEdit}>
+            Annuler
+          </IconButton>
+        )}
       </div>
 
-      {/* LISTE MATCHS */}
+      {/* Tableau des matchs */}
       <div style={{ marginTop: 18 }}>
         <table style={{ width: "100%", fontSize: 14, color: ui.colors.text }}>
           <thead>
@@ -642,6 +698,7 @@ const MatchesSection = () => {
               <th>Lieu</th>
               <th>Type</th>
               <th>Commentaires</th>
+              <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
 
@@ -654,8 +711,31 @@ const MatchesSection = () => {
                 <td>{m.venue}</td>
                 <td>{m.matchType}</td>
                 <td style={{ color: ui.colors.muted }}>{m.comment}</td>
+
+                <td>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <IconButton onClick={() => startEdit(m)}>
+                      Modifier
+                    </IconButton>
+
+                    <IconButton
+                      onClick={() => removeMatch(m.id)}
+                      style={{ color: "#dc2626" }}
+                    >
+                      Supprimer
+                    </IconButton>
+                  </div>
+                </td>
               </tr>
             ))}
+
+            {matches.length === 0 && (
+              <tr>
+                <td colSpan={7} style={{ padding: "10px 0", color: ui.colors.muted }}>
+                  Aucun match enregistré.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -663,7 +743,7 @@ const MatchesSection = () => {
   );
 };
 
-   
+
   /* ================================
      Onglet PRESENCES
   ==================================*/
