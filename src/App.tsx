@@ -865,7 +865,7 @@ const MatchesSection = () => {
           <header style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 24, fontWeight: 800 }}>Volley — Composition</div>
             <div style={{ color: ui.colors.muted, marginTop: 4, fontSize: 14 }}>
-              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.(Données stockées en local.)
+              Gestion des joueurs, présences et compositions en fonction des postes suivants : 2‑Passe, 3‑Centre, 4‑Pointu.
             </div>
           </header>
 
@@ -877,7 +877,7 @@ const MatchesSection = () => {
           {activeTab === "lineup" && <LineupSection />}
 
           <footer style={{ marginTop: 24, textAlign: "center", fontSize: 12, color: ui.colors.muted }}>
-            v0.5 — Données stockées localement. Design épuré (clair/sombre) prêt pour “Tactique” & “Countdown”.
+            v0.5 — Données stockées localement.
           </footer>
         </div>
       </div>
