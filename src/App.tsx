@@ -1127,8 +1127,8 @@ const LineupSection = () => {
       borderRadius:12,
       padding:10,
       minHeight:60,
-      display:"flex",
-      flexDirection:"column",   // 👈 affichage vertical !
+      display:"grid",
+      gridTemplateColumns:"1fr", // 👈 une seule colonne
       gap:8
     }}
   >
