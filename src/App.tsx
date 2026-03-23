@@ -1055,50 +1055,50 @@ const LineupSection = () => {
     cursor:"grab",
   };
 
-  const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
-    const slot = getSlot(zone);
-    const p = players.find(pp => pp.id === slot.playerId);
-    const ok = p ? matchesRole(p, zone) : false;
+const ZoneCell: React.FC<{ zone: 1|2|3|4|5|6 }> = ({ zone }) => {
+  const slot = getSlot(zone);
+  const p = players.find(pp => pp.id === slot.playerId);
+  const ok = p ? matchesRole(p, zone) : false;
 
-    return (
-      <div>
-        <div style={{ fontSize:12, color:ui.colors.muted, marginBottom:4 }}>
-          Position {zone} • {ROLE_BY_ZONE[zone].split(" - ")[1]}
-        </div>
+  return (
+    <div>
+      <div style={{ fontSize:12, color:ui.colors.muted, marginBottom:4 }}>
+        Position {zone} • {ROLE_BY_ZONE[zone].split(" - ")[1]}
+      </div>
 
-        <div
-          style={zoneBox(!!p && !ok)}
-          onDragOver={onDragOverAllow}
-          onDrop={makeDropZone(zone)}
-        >
-          {p ? (
-            <>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div
-                  draggable
-                  onDragStart={(e) => onDragStartPlayer(e, p.id)}
-                  style={avatar}
-                >
-                  {initials(p.nom, p.prenom)}
-                </div>
-
-                {/* → PRÉNOM SEULEMENT */}
-                <div style={{ fontWeight:700 }}>{p.prenom}</div>
-
-                {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
+      <div
+        style={zoneBox(!!p && !ok)}
+        onDragOver={onDragOverAllow}
+        onDrop={makeDropZone(zone)}
+      >
+        {p ? (
+          <>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <div
+                draggable
+                onDragStart={(e) => onDragStartPlayer(e, p.id)}
+                style={avatar}
+              >
+                {initials(p.nom, p.prenom)}
               </div>
 
-              <IconButton onClick={() => clearZone(zone)}>
-                Vider
-              </IconButton>
-            </>
-          ) : (
-            <div style={{ color: ui.colors.muted }}>Glisser ici…</div>
-          )}
-        </div>
+              {/* 🚀 UNIQUEMENT LE PRÉNOM DANS LA CELLULE */}
+              <div style={{ fontWeight:700 }}>{p.prenom}</div>
+
+              {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
+            </div>
+
+            <IconButton onClick={() => clearZone(zone)}>
+              Vider
+            </IconButton>
+          </>
+        ) : (
+          <div style={{ color: ui.colors.muted }}>Glisser ici…</div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   return (
     <Section
