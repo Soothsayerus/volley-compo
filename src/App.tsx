@@ -1068,14 +1068,10 @@ const LineupSection = () => {
         <div style={zoneBox(!!p && !ok)} onClick={() => placeSelectedInZone(zone)}>
           {p ? (
             <>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div style={avatar}>{initials(p.nom, p.prenom)}</div>
 
                 {/* 👇 Uniquement le prénom dans la case */}
                 <div style={{ fontWeight:700 }}>{p.prenom}</div>
 
-                {ok ? <Tag text="OK rôle" /> : <Tag text="? rôle" />}
-              </div>
 
               <IconButton onClick={(e) => { e.stopPropagation(); clearZone(zone); }}>
                 Vider
